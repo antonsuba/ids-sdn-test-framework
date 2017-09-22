@@ -1,15 +1,18 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import os
-import glob
+import imp
 import argparse
 import sys
-from itertools import combinations
+import inspect
+import pkgutil
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import RemoteController
 from mininet.log import setLogLevel
+import test_cases
 
 #Setup arguments
 parser = argparse.ArgumentParser(description='Generates n number of hosts to simulate normal and anomalous attack behaviors')
@@ -23,30 +26,37 @@ args = parser.parse_args()
 
 net = Mininet(controller=RemoteController, link=TCLink)
 
-h = list()
+HOSTS = list()
 
 #Generate hosts
 def create_test_netowrk(hosts, ratio):
     total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
 
     for i in range(0, total_hosts):
-        h.append(net.addHost('test-h' + str(i)))
+        HOSTS.append(net.addHost('test-h' + str(i)))
 
 #Run specified test (Defaults to: all tests)
-def exec_test_cases(test, directory='test-cases'):
-    test_path = os.path.join(os.path.dirname, directory)
+def exec_test_cases(test, package=test_cases):
+    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        if modname in test_cases.EXCLUDE:
+            continue
 
-    test_files = [f for f in listdir(test_path) if isfile(join(mypath, f))]
-    
-    for test_file in test_files:
-        name = os.path.splitext(os.path.basename(test_file))[0]
-        module = __import__(name)
-        
+        module = importer.find_module(modname).load_module(modname)
+        test_name, test_class = load_test_class(module)
 
+        try:
+            test_class().run_test()
+        except TypeError:
+            print '%s must have run_test method' % (test_name)
+
+#Load test class given a module
+def load_test_class(module):
+    for name, obj in inspect.getmembers(module, inspect.isclass):
+        return name, obj
 
 setLogLevel('info')
 create_test_netowrk(args.hosts, args.ratio)
-run_tests(args.test)
+exec_test_cases(args.test)
 
 net.start()
 
