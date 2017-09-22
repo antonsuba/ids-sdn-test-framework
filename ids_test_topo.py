@@ -27,13 +27,18 @@ args = parser.parse_args()
 net = Mininet(controller=RemoteController, link=TCLink)
 
 HOSTS = list()
+SWITCHES = list()
+OFFSET = 50
 
 #Generate hosts
 def create_test_netowrk(hosts, ratio):
+    test_c0 = net.addController()
     total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
 
-    for i in range(0, total_hosts):
-        HOSTS.append(net.addHost('test-h' + str(i)))
+    for i in range(OFFSET, total_hosts + OFFSET):
+        HOSTS.append(net.addHost('h' + str(i)))
+        SWITCHES.append(net.addSwitch('s' + str(i)))
+        net.addLink(HOSTS[i - OFFSET], SWITCHES[i - OFFSET], bw=10, delay='10ms')
 
 #Run specified test (Defaults to: all tests)
 def exec_test_cases(test, package=test_cases):

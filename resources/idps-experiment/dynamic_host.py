@@ -21,7 +21,7 @@ h = list()
 
 def createTopo(nSwitch):
 	#create nodes
-    c0 = net.addController()
+    c0 = net.addController(port=6634)
     s.append(net.addSwitch('s0'))
 
     for i in range(0, nSwitch):
