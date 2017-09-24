@@ -19,7 +19,7 @@ def generate_arr(dataset, classification):
     return dataset_arr, classification_arr
 
 def convert_class(x):
-    return int(x != 'normal')
+    return int(x != 'Normal')
 
 #Load training data
 packets = load_data_set(DATA_PATH, TRAIN_FILE_NAME)
