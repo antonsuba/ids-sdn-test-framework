@@ -28,17 +28,36 @@ net = Mininet(controller=RemoteController, link=TCLink)
 
 HOSTS = list()
 SWITCHES = list()
-OFFSET = 50
 
-#Generate hosts
+INTERNAL_CONTROLLER_PORT = 6633
+TEST_CONTROLLER_PORT = 6634
+
+#Generate internal network
+def create_network(switches):
+    c0 = net.addController(port=INTERNAL_CONTROLLER_PORT)
+    SWITCHES.append(net.addSwitch('s0'))
+
+    for i in range(0, switches):
+        SWITCHES.append(net.addSwitch('s'+str(i+1), listenPort=INTERNAL_CONTROLLER_PORT))
+        HOSTS.append(net.addHost('h'+str(i)))
+
+        net.addLink(SWITCHES[0], SWITCHES[i+1], bw=10, delay='10ms')
+        net.addLink(HOSTS[i], SWITCHES[i+1], bw=10, delay='10ms')
+
+#Generate test network
 def create_test_netowrk(hosts, ratio):
-    test_c0 = net.addController()
+    offset = len(SWITCHES)
+    host_offset = len(HOSTS)
+
+    test_c0 = net.addController(port=TEST_CONTROLLER_PORT)
     total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
 
-    for i in range(OFFSET, total_hosts + OFFSET):
+    for i in range(offset, total_hosts + offset):
+        print(i)
         HOSTS.append(net.addHost('h' + str(i)))
-        SWITCHES.append(net.addSwitch('s' + str(i)))
-        net.addLink(HOSTS[i - OFFSET], SWITCHES[i - OFFSET], bw=10, delay='10ms')
+        SWITCHES.append(net.addSwitch('s' + str(i), listenPort=TEST_CONTROLLER_PORT))
+        net.addLink(SWITCHES[0], SWITCHES[i], bw=10, delay='10ms')
+        net.addLink(HOSTS[i + host_offset - offset], SWITCHES[i], bw=10, delay='10ms')
 
 #Run specified test (Defaults to: all tests)
 def exec_test_cases(test, package=test_cases):
@@ -60,6 +79,7 @@ def load_test_class(module):
         return name, obj
 
 setLogLevel('info')
+create_network(3)
 create_test_netowrk(args.hosts, args.ratio)
 exec_test_cases(args.test)
 
