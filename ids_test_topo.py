@@ -43,18 +43,11 @@ def create_network(switches):
         net.addLink(SWITCHES[0], SWITCHES[i+1], bw=10, delay='10ms')
         net.addLink(HOSTS[i], SWITCHES[i+1], bw=10, delay='10ms')
 
-#Generate hosts directory of internal network
-def generate_hosts_file():
-    hosts_file = open('ids_hosts.txt', 'w+')
-    for x in range(0, len(HOSTS)):
-        host = net.get('h' + str(x))
-        result = host.cmd('hostname -I')
-        hosts_file.write(str(x) + '_' + result)
-
 #Generate test network
 def create_test_netowrk(hosts, ratio):
     offset = len(SWITCHES)
-    total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
+    # total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
+    total_hosts = hosts
 
     for i in range(0, total_hosts):
         TEST_HOSTS.append(net.addHost('h' + str(i + offset - 1)))
@@ -63,8 +56,21 @@ def create_test_netowrk(hosts, ratio):
         net.addLink(SWITCHES[0], TEST_SWITCHES[i], bw=10, delay='10ms')
         net.addLink(TEST_HOSTS[i], TEST_SWITCHES[i], bw=10, delay='10ms')
 
+#Generate hosts directory of internal network
+def log_target_hosts():
+    targets_file = open('target_hosts.txt', 'w+')
+    targets_arr = list()
+
+    for i in range(0, len(HOSTS)):
+        host = net.get('h' + str(i))
+        ipaddr = host.cmd('hostname -I')
+        targets_arr.append(ipaddr)
+        targets_file.write('h%s_%s' % (str(i), ipaddr))
+
+    return targets_arr
+
 #Run specified test (Defaults to: all tests)
-def exec_test_cases(test, package=test_cases):
+def exec_test_cases(test, targets, package=test_cases):
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
         if modname in test_cases.EXCLUDE:
             continue
@@ -73,9 +79,9 @@ def exec_test_cases(test, package=test_cases):
         test_name, test_class = load_test_class(module)
 
         try:
-            test_class().run_test()
+            test_class().run_test(targets, TEST_HOSTS)
         except TypeError:
-            print '%s must have run_test method' % (test_name)
+            print '%s must have run_test(targets) method' % (test_name)
 
 #Load test class given a module
 def load_test_class(module):
@@ -91,8 +97,8 @@ create_test_netowrk(args.hosts, args.ratio)
 net.start()
 
 #Execute framework commands
-generate_hosts_file()
-exec_test_cases(args.test)
+targets_arr = log_target_hosts()
+exec_test_cases(args.test, targets_arr)
 
 CLI(net)
 net.stop()

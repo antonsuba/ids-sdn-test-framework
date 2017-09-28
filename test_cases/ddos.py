@@ -1,9 +1,25 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from test_cases.test_case import TestCase
+class DDOS(object):
 
-class DDOS(TestCase):
+    def __init__(self):
+        self.name = 'DDOS'
+        self.packages = ['apache2-utils']
 
-    def run_test(self):
-        print 'Test running'
+    def run_test(self, targets, hosts):
+        self.check_dependencies(self.packages, hosts[0])
+        self.exec_attack(targets, hosts)
+
+    def check_dependencies(self, packages, host):
+        result = host.cmd('dpkg -l %s' % (' '.join(packages)))
+        if 'no packages found' in result:
+            print 'Please install required dependencies by running:'
+            print 'sudo apt-get install %s' % (' '.join(packages))
+            # host.cmd('sudo apt-get install %s' % (' '.join(packages)))
+
+    def exec_attack(self, targets, hosts):
+        print 'Executing attack: %s' % self.name
+        for i in range(0, len(targets)):
+            print i
+            hosts[i].cmd('ab -n 10 -c 5 %s' % targets[i])
