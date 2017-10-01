@@ -1,19 +1,22 @@
 import os
 import pandas as pd
+import json
+from datetime import datetime
+from collections import defaultdict, OrderedDict
 from sklearn import ensemble
 from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
-DATA_PATH = os.path.join('data', 'NSL-KDD')
-TRAIN_FILE_NAME = 'kdd-train.csv'
-TEST_FILE_NAME = 'kdd-test.csv'
+DATA_PATH = os.path.join('../data', 'IDS2012')
 
+# TODO: Load all json files in the folder and combine into one list
 def load_data_set(data_path, filename):
-    csv_path = os.path.join(data_path, filename)
-    return pd.read_csv(csv_path)
+    json_path = os.path.join(data_path, filename)
+    return json.load(open(json_path, 'r'), object_pairs_hook=OrderedDict).get('dataroot').get('TestbedTueJun15-2Flows')
 
 def generate_arr(dataset, classification):
     classification_arr = dataset[classification].values
+    del dataset[classification]
     dataset_arr = dataset.values
 
     return dataset_arr, classification_arr
@@ -21,40 +24,54 @@ def generate_arr(dataset, classification):
 def convert_class(x):
     return int(x != 'Normal')
 
+def convert_direction(x):
+    return int(x != 'L2R')
+
+def calculate_duration(start, stop):
+    dt = datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S') - datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+    return dt.total_seconds()
+
 #Load training data
-packets = load_data_set(DATA_PATH, TRAIN_FILE_NAME)
+flows = load_data_set(DATA_PATH, 'TestbedTueJun15-2Flows.json')
 
 #Clean training data
-last_row = len(packets)
-packets = packets.drop(packets.index[last_row - 1])
-del packets['idk']
+targets = []
+features = []
+ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
+for flow in flows:
+    # Delete unnecessary features
+    del flow['appName']
+    del flow['sourcePayloadAsBase64']
+    del flow['sourcePayloadAsUTF']
+    del flow['destinationPayloadAsBase64']
+    del flow['destinationPayloadAsUTF']
+    del flow['sourceTCPFlagsDescription']
+    del flow['destinationTCPFlagsDescription']
 
-packets['duration'] = pd.to_numeric(packets['duration'])
+    # Count total number of IP address occurences
+    ip_counts['source'][flow['source']] += 1
+    ip_counts['destination'][flow['destination']] += 1
 
-#Load test data
-test_packets = load_data_set(DATA_PATH, TEST_FILE_NAME)
+    # Convert into more appropriate features
+    flow['direction'] = convert_direction(flow['direction'])
+    flow['duration'] = calculate_duration(flow.pop('startDateTime'), flow.pop('stopDateTime'))
+    flow['Tag'] = convert_class(flow['Tag'])
 
-#Clean test data
-last_row = len(test_packets)
-test_packets = test_packets.drop(test_packets.index[last_row - 1])
-del test_packets['idk']
+for flow in flows:
+    flow['source_ip_count'] = ip_counts['source'][flow.pop('source')]
+    flow['destination_ip_count'] = ip_counts['destination'][flow.pop('destination')]
 
-test_packets['class'] = test_packets['class'].apply(convert_class)
-test_packets['duration'] = pd.to_numeric(test_packets['duration'])
+temp = pd.DataFrame.from_dict(flows)
+data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
+print data
 
-#One hot encode features
-train_len = len(packets)
-frames = [packets, test_packets]
-temp = pd.concat(frames, axis=0)
-
-temp_preprocessed = pd.get_dummies(temp)
-
-packets = temp_preprocessed[:train_len]
-test_packets = temp_preprocessed[train_len:]
+train_len = 95000
+packets = data[:train_len]
+test_packets = data[train_len:]
 
 #Generate arrays
-packets_arr, classification_arr = generate_arr(packets, 'class')
-test_packets_arr, test_classification_arr = generate_arr(test_packets, 'class')
+packets_arr, classification_arr = generate_arr(packets, 'Tag')
+test_packets_arr, test_classification_arr = generate_arr(test_packets, 'Tag')
 
 #Train classifier
 clf = ensemble.AdaBoostClassifier()
