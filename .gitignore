@@ -1,5 +1,3 @@
 env/
 .ipynb_checkpoints/
 .vscode
-data/IDS2012/*.json
-
