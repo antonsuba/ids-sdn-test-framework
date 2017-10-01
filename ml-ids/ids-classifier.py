@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import json
 from datetime import datetime
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from sklearn import ensemble
 from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
@@ -12,7 +12,7 @@ DATA_PATH = os.path.join('../data', 'IDS2012')
 # TODO: Load all json files in the folder and combine into one list
 def load_data_set(data_path, filename):
     json_path = os.path.join(data_path, filename)
-    return json.load(open(json_path, 'r'), object_pairs_hook=OrderedDict).get('dataroot').get('TestbedTueJun15-2Flows')
+    return json.load(open(json_path, 'r')).get('dataroot').get('TestbedTueJun15-2Flows')
 
 def generate_arr(dataset, classification):
     classification_arr = dataset[classification].values
