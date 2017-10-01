@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import json
+import glob
 from datetime import datetime
 from collections import defaultdict
 from sklearn import ensemble
@@ -10,9 +11,14 @@ from sklearn.externals import joblib
 DATA_PATH = os.path.join('../data', 'IDS2012')
 
 # TODO: Load all json files in the folder and combine into one list
-def load_data_set(data_path, filename):
-    json_path = os.path.join(data_path, filename)
-    return json.load(open(json_path, 'r')).get('dataroot').get('TestbedTueJun15-2Flows')
+def load_data_set(data_path):
+    json_path = os.path.join(data_path, '*.json')
+    dataset = []
+    for fn in glob.glob(json_path):
+        file = fn.split('/')[-1].split('.')[0]
+        print file
+        dataset += json.load(open(fn, 'r')).get('dataroot').get(file)
+    return dataset
 
 def generate_arr(dataset, classification):
     classification_arr = dataset[classification].values
@@ -32,7 +38,7 @@ def calculate_duration(start, stop):
     return dt.total_seconds()
 
 #Load training data
-flows = load_data_set(DATA_PATH, 'TestbedTueJun15-2Flows.json')
+flows = load_data_set(DATA_PATH)
 
 #Clean training data
 targets = []
