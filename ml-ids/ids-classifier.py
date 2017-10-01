@@ -10,7 +10,6 @@ from sklearn.externals import joblib
 
 DATA_PATH = os.path.join('../data', 'IDS2012')
 
-# TODO: Load all json files in the folder and combine into one list
 def load_data_set(data_path):
     json_path = os.path.join(data_path, '*.json')
     dataset = []
