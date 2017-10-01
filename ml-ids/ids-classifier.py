@@ -13,10 +13,9 @@ DATA_PATH = os.path.join('../data', 'IDS2012')
 def load_data_set(data_path):
     json_path = os.path.join(data_path, '*.json')
     dataset = []
-    for fn in glob.glob(json_path):
-        file = fn.split('/')[-1].split('.')[0]
-        print file
-        dataset += json.load(open(fn, 'r')).get('dataroot').get(file)
+    for file in glob.glob(json_path):
+        filename = file.split('/')[-1].split('.')[0]
+        dataset += json.load(open(file, 'r')).get('dataroot').get(filename)
     return dataset
 
 def generate_arr(dataset, classification):
