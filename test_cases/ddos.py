@@ -9,7 +9,7 @@ class DDOS(object):
 
     def run_test(self, targets, hosts):
         self.check_dependencies(self.packages, hosts[0])
-        self.exec_attack(targets, hosts)
+        #self.exec_attack(targets, hosts)
 
     def check_dependencies(self, packages, host):
         result = host.cmd('dpkg -l %s' % (' '.join(packages)))
