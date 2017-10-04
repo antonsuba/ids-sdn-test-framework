@@ -11,6 +11,7 @@ from sklearn.externals import joblib
 
 DATA_PATH = os.path.join('../data', 'IDS2012')
 
+
 def load_data_set(data_path):
     json_path = os.path.join(data_path, '*.json')
     dataset = []
@@ -22,7 +23,7 @@ def load_data_set(data_path):
             json_file = open(file, 'r')
             temp = json.load(json_file).get('dataroot').get(filename)
 
-            #Clean dataset
+            # Clean dataset
             for item in temp:
                 # Delete unnecessary features
                 del item['appName']
@@ -39,8 +40,17 @@ def load_data_set(data_path):
 
                 # Convert into more appropriate features
                 item['direction'] = convert_direction(item['direction'])
-                item['duration'] = calculate_duration(item.pop('startDateTime'), item.pop('stopDateTime'))
+                item['duration'] = calculate_duration(
+                    item.pop('startDateTime'), item.pop('stopDateTime'))
                 item['Tag'] = convert_class(item['Tag'])
+
+                # Delete features for prototype
+                del item['totalSourceBytes']
+                del item['totalDestinationBytes']
+                del item['totalDestinationPackets']
+                del item['totalSourcePackets']
+                del item['direction']
+
             dataset += temp
         finally:
             if json_file is not None:
@@ -49,6 +59,7 @@ def load_data_set(data_path):
                 gc.collect()
     return dataset
 
+
 def generate_arr(dataset, classification):
     classification_arr = dataset[classification].values
     del dataset[classification]
@@ -56,23 +67,29 @@ def generate_arr(dataset, classification):
 
     return dataset_arr, classification_arr
 
+
 def convert_class(x):
     return int(x != 'Normal')
+
 
 def convert_direction(x):
     return int(x != 'L2R')
 
+
 def calculate_duration(start, stop):
-    dt = datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S') - datetime.strptime(start, '%Y-%m-%dT%H:%M:%S')
+    dt = datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S') - datetime.strptime(
+        start, '%Y-%m-%dT%H:%M:%S')
     return dt.total_seconds()
 
-#Load training data
+
+# Load training data
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 flows = load_data_set(DATA_PATH)
 
 for flow in flows:
     flow['source_ip_count'] = ip_counts['source'][flow.pop('source')]
-    flow['destination_ip_count'] = ip_counts['destination'][flow.pop('destination')]
+    flow['destination_ip_count'] = ip_counts['destination'][flow.pop(
+        'destination')]
 
 temp = pd.DataFrame.from_dict(flows)
 data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
@@ -84,20 +101,20 @@ train_len = 1500000
 packets = data[:train_len]
 test_packets = data[train_len:]
 
-#Generate arrays
+# Generate arrays
 packets_arr, classification_arr = generate_arr(packets, 'Tag')
 test_packets_arr, test_classification_arr = generate_arr(test_packets, 'Tag')
 
-#Train classifier
+# Train classifier
 clf = ensemble.AdaBoostClassifier()
 clf.fit(packets_arr, classification_arr)
 
-#Test classifier
+# Test classifier
 pred = clf.predict(test_packets_arr)
 
-#Check accuracy
+# Check accuracy
 accuracy = accuracy_score(test_classification_arr, pred)
 print 'Accuracy:', accuracy
 
-#Save model
+# Save model
 joblib.dump(clf, 'adaboost-ids.pkl')
