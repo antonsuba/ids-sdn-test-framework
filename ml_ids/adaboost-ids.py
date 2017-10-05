@@ -33,7 +33,7 @@ class PacketChecker(object):
         self.black_list = list()
         self.timestamp_log = list()
         self.source_ip_count_list = {}
-        self.destination_ip_count_list = {}
+        self.destination_port_count_list = {}
         self.count = 0
 
         self.clf = joblib.load(CLASSIFIER_FILE)
@@ -50,6 +50,7 @@ class PacketChecker(object):
         entry = list()
 
         entry.append(dst_port)
+        entry.append(self.destination_port_count_list[dst_port])
         entry.append(self.source_ip_count_list[ip.srcip])
 
         protocol_one_hot = [0, 0, 0, 0, 0, 0]
@@ -98,6 +99,12 @@ class PacketChecker(object):
                 if dst_port is None:
                     log.info('Skip packet. Not in mac_to_port')
                     return EventHalt
+
+                #Check and update count of destination port
+                if dst_port in self.destination_port_count_list:
+                    self.destination_port_count_list[dst_port] += 1
+                else:
+                    self.destination_port_count_list[dst_port] = 1
 
                 #Check and update count of source IP
                 if ip.srcip in self.source_ip_count_list:
