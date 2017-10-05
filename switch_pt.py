@@ -118,6 +118,9 @@ class Switch (object):
     dpid = dpidToStr(self.connection.dpid)
     log.debug("DPID: %s" % (dpid))
 
+  def get_mac_to_port(self):
+    return self.get_mac_to_port
+
 def launch ():
   """
   Starts the component
@@ -126,4 +129,8 @@ def launch ():
     log.debug("Controlling %s" % (event.connection,))
     switch = Switch(event.connection)
     core.Interactive.variables['switch'] = switch
+
+    if not core.hasComponent(switch):
+      core.register('switch_pt', switch)
+
   core.openflow.addListenerByName("ConnectionUp", start_switch)
