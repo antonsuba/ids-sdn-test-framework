@@ -46,12 +46,13 @@ class PacketChecker(object):
         self.enable_checker = bool(enable)
         print 'This checker has been set to: ' + str(enable)
 
-    def generate_prediction_entry(self, ip, dst_port, packet):
+    def generate_prediction_entry(self, ip, dst_port, packet, packet_in):
         entry = list()
 
         entry.append(dst_port)
         entry.append(self.destination_port_count_list[dst_port])
         entry.append(1)
+        entry.append(packet_in.in_port)
         entry.append(self.source_ip_count_list[ip.srcip])
 
         protocol_one_hot = [0, 0, 0, 0, 0, 0]
@@ -76,6 +77,7 @@ class PacketChecker(object):
 
         if self.enable_checker is True:
             packet = event.parsed
+            packet_in = event.ofp
 
             self.count += 1
             log.info("Switch#" + str(self.number) + " packet# " + str(self.count))
@@ -118,7 +120,7 @@ class PacketChecker(object):
                     self.source_ip_count_list[ip.srcip] = 1
 
                 #Generate array for prediction then classify
-                entry = self.generate_prediction_entry(ip, dst_port, packet)
+                entry = self.generate_prediction_entry(ip, dst_port, packet, packet_in)
                 pred = self.clf.predict(entry)
 
                 log.info('Classification: %i' % pred)
