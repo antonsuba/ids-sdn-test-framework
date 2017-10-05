@@ -51,6 +51,7 @@ class PacketChecker(object):
 
         entry.append(dst_port)
         entry.append(self.destination_port_count_list[dst_port])
+        entry.append(1)
         entry.append(self.source_ip_count_list[ip.srcip])
 
         protocol_one_hot = [0, 0, 0, 0, 0, 0]
@@ -59,7 +60,7 @@ class PacketChecker(object):
         protocol_one_hot[protocol_num] = 1
         entry.extend(protocol_one_hot)
 
-        return entry
+        return [entry]
 
     def set_block_rule(self, ip):
         msg = of.ofp_flow_mod()
@@ -73,7 +74,7 @@ class PacketChecker(object):
     def _handle_PacketIn(self, event):
         log.info('IDS#%s Packet In. Checker: %s' % (self.number, str(self.enable_checker)))
 
-        if self.enable_checker == True:
+        if self.enable_checker is True:
             packet = event.parsed
 
             self.count += 1
@@ -86,6 +87,10 @@ class PacketChecker(object):
 
                 log.info("Switch# " + str(self.number) + " Source IP: " +  str(ip.srcip))
 
+                #Do nothing if packet came from host
+                if self.attached_host == ip.srcip:
+                    return
+
                 #Check if IP is already blocked
                 if str(ip.srcip) in self.black_list:
                     log.info("%s BLOCKED!" % str(ip.srcip))
@@ -95,12 +100,12 @@ class PacketChecker(object):
                     return EventHalt
 
                 #Check if destination port is recorded as a table rule
-                dst_port = core.switch_pt.mac_to_port[packet.dst]
-                if dst_port is None:
+                if packet.dst not in core.switch_pt.mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
-                    return EventHalt
+                    return
 
                 #Check and update count of destination port
+                dst_port = core.switch_pt.mac_to_port[packet.dst]
                 if dst_port in self.destination_port_count_list:
                     self.destination_port_count_list[dst_port] += 1
                 else:
@@ -114,9 +119,10 @@ class PacketChecker(object):
 
                 #Generate array for prediction then classify
                 entry = self.generate_prediction_entry(ip, dst_port, packet)
-                # pred = self.clf.predict(entry)
+                pred = self.clf.predict(entry)
 
-                pred = True
+                log.info('Classification: %i' % pred)
+                # pred = True
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))
@@ -124,6 +130,9 @@ class PacketChecker(object):
 
                     #Create openflow message to set block rule
                     self.set_block_rule(ip)
+
+                    #Log IP of anomalous host
+                    core.IDSMetricLogger.log_blocked_host(ip.srcip)
 
 #Start Component
 def launch():
