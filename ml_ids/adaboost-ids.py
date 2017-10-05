@@ -11,6 +11,7 @@ CLASSIFIER_FILE = '/home/mininet/pox/ext/adaboost-ids.pkl'
 log = core.getLogger()
 checker = list()
 switch_number = -1
+global_black_list = list()
 
 PROTOCOLS = {
     pkt.ipv4.ICMP_PROTOCOL : 0,
@@ -45,6 +46,9 @@ class PacketChecker(object):
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
         print 'This checker has been set to: ' + str(enable)
+
+    def get_global_blacklist(self):
+        print 'Blacklist: %s' % str(global_black_list)
 
     def generate_prediction_entry(self, ip, dst_port, packet, packet_in):
         entry = list()
@@ -121,14 +125,15 @@ class PacketChecker(object):
 
                 #Generate array for prediction then classify
                 entry = self.generate_prediction_entry(ip, dst_port, packet, packet_in)
-                pred = self.clf.predict(entry)
+                # pred = self.clf.predict(entry)
 
-                log.info('Classification: %i' % pred)
-                # pred = True
+                # log.info('Classification: %i' % pred)
+                pred = True
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))
                     self.black_list.append(str(ip.srcip))
+                    global_black_list.append(str(ip.srcip))
 
                     #Create openflow message to set block rule
                     self.set_block_rule(ip)
