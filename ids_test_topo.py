@@ -31,6 +31,7 @@ net = Mininet(controller=RemoteController, link=TCLink)
 HOSTS = list()
 SWITCHES = list()
 
+BACKGROUND_HOSTS =list()
 TEST_HOSTS = list()
 TEST_SWITCHES = list()
 
@@ -63,13 +64,20 @@ def create_background_network(hosts, ratio, package=external_network):
 
         try:
             topo_class().create_background_generator(net, total_hosts, offset, SWITCHES,
-                                                     TEST_HOSTS, TEST_SWITCHES)
+                                                     BACKGROUND_HOSTS, TEST_SWITCHES)
         except TypeError:
             print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
 
     print '\n%s generated with:\n' % topo_name
     print 'HOSTS: %s' % str(HOSTS)
     print 'SWITCHES: %s\n' % str(SWITCHES)
+
+def start_internal_servers(directory, port):
+    print '\nStarting internal network hosts servers:'
+    for host in HOSTS:
+        host.cmd('cd %s' % directory)
+        host.cmd('python -m SimpleHTTPServer %s &' % str(port))
+        print '%s server started' % str(host)
 
 #Run specified test (Defaults to: all tests)
 def exec_test_cases(test, targets, package=test_cases):
@@ -82,7 +90,8 @@ def exec_test_cases(test, targets, package=test_cases):
 
         try:
             print 'Executing %s' % test_name
-            test_class().run_test(targets, TEST_HOSTS)
+            generate_background_traffic(BACKGROUND_HOSTS, targets, 8000, 'sample1.txt')
+            # test_class().run_test(targets, TEST_HOSTS)
         except TypeError:
             print 'Error. %s must have run_test(targets) method' % (test_name)
 
@@ -99,6 +108,12 @@ def log_target_hosts():
 
     return targets_arr
 
+def generate_background_traffic(hosts, target_hosts, port, filename):
+    for i in range(0, len(target_hosts)):
+        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s' % (target_hosts[i], port, filename)
+        print 'Executing ab command: %s' % ab_cmd
+        hosts[i].cmd(ab_cmd)
+
 #Load class given a module
 def load_class(module):
     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -107,10 +122,15 @@ def load_class(module):
 setLogLevel('info')
 
 c0 = net.addController()
+
+#Create network topology
 create_network(3)
 create_background_network(args.hosts, args.ratio)
 
 net.start()
+
+#Start servers of internal network hosts
+start_internal_servers('dummy_files', 8000)
 
 #Execute framework commands
 targets_arr = log_target_hosts()
