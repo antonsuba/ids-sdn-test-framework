@@ -13,6 +13,7 @@ from mininet.cli import CLI
 from mininet.node import RemoteController
 from mininet.log import setLogLevel
 import internal_network
+import external_network
 import test_cases
 
 #Setup arguments
@@ -43,24 +44,47 @@ def create_network(switches, package=internal_network):
         try:
             topo_class().create_topo(switches, net, SWITCHES, HOSTS)
         except TypeError:
-            print '%s must have create_topo(n, Mininet, switches, hosts) method' % (test_name)
+            print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
 
     print '\n%s generated with:\n' % topo_name
     print 'HOSTS: %s' % str(HOSTS)
     print 'SWITCHES: %s\n' % str(SWITCHES)
 
 #Generate test network
-def create_test_netowrk(hosts, ratio):
+def create_background_network(hosts, ratio, package=external_network):
     offset = len(SWITCHES)
     # total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
     total_hosts = hosts
 
-    for i in range(0, total_hosts):
-        TEST_HOSTS.append(net.addHost('h' + str(i + offset - 1)))
-        TEST_SWITCHES.append(net.addSwitch('s' + str(i + offset)))
+    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
-        net.addLink(SWITCHES[0], TEST_SWITCHES[i], bw=10, delay='10ms')
-        net.addLink(TEST_HOSTS[i], TEST_SWITCHES[i], bw=10, delay='10ms')
+        module = importer.find_module(modname).load_module(modname)
+        topo_name, topo_class = load_class(module)
+
+        try:
+            topo_class().create_background_generator(net, total_hosts, offset, SWITCHES,
+                                                     TEST_HOSTS, TEST_SWITCHES)
+        except TypeError:
+            print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
+
+    print '\n%s generated with:\n' % topo_name
+    print 'HOSTS: %s' % str(HOSTS)
+    print 'SWITCHES: %s\n' % str(SWITCHES)
+
+#Run specified test (Defaults to: all tests)
+def exec_test_cases(test, targets, package=test_cases):
+    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        if modname in test_cases.EXCLUDE:
+            continue
+
+        module = importer.find_module(modname).load_module(modname)
+        test_name, test_class = load_class(module)
+
+        try:
+            print 'Executing %s' % test_name
+            test_class().run_test(targets, TEST_HOSTS)
+        except TypeError:
+            print 'Error. %s must have run_test(targets) method' % (test_name)
 
 #Generate hosts directory of internal network
 def log_target_hosts():
@@ -75,20 +99,6 @@ def log_target_hosts():
 
     return targets_arr
 
-#Run specified test (Defaults to: all tests)
-def exec_test_cases(test, targets, package=test_cases):
-    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
-        if modname in test_cases.EXCLUDE:
-            continue
-
-        module = importer.find_module(modname).load_module(modname)
-        test_name, test_class = load_class(module)
-
-        try:
-            test_class().run_test(targets, TEST_HOSTS)
-        except TypeError:
-            print '%s must have run_test(targets) method' % (test_name)
-
 #Load class given a module
 def load_class(module):
     for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -98,7 +108,7 @@ setLogLevel('info')
 
 c0 = net.addController()
 create_network(3)
-create_test_netowrk(args.hosts, args.ratio)
+create_background_network(args.hosts, args.ratio)
 
 net.start()
 
