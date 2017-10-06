@@ -12,6 +12,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import RemoteController
 from mininet.log import setLogLevel
+import internal_network
 import test_cases
 
 #Setup arguments
@@ -33,15 +34,20 @@ TEST_HOSTS = list()
 TEST_SWITCHES = list()
 
 #Generate internal network
-def create_network(switches):
-    SWITCHES.append(net.addSwitch('s0'))
+def create_network(switches, package=internal_network):
+    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
-    for i in range(0, switches):
-        SWITCHES.append(net.addSwitch('s'+str(i+1)))
-        HOSTS.append(net.addHost('h'+str(i)))
+        module = importer.find_module(modname).load_module(modname)
+        topo_name, topo_class = load_class(module)
 
-        net.addLink(SWITCHES[0], SWITCHES[i+1], bw=10, delay='10ms')
-        net.addLink(HOSTS[i], SWITCHES[i+1], bw=10, delay='10ms')
+        try:
+            topo_class().create_topo(switches, net, SWITCHES, HOSTS)
+        except TypeError:
+            print '%s must have create_topo(n, Mininet, switches, hosts) method' % (test_name)
+
+    print '\n%s generated with:\n' % topo_name
+    print 'HOSTS: %s' % str(HOSTS)
+    print 'SWITCHES: %s\n' % str(SWITCHES)
 
 #Generate test network
 def create_test_netowrk(hosts, ratio):
@@ -76,15 +82,15 @@ def exec_test_cases(test, targets, package=test_cases):
             continue
 
         module = importer.find_module(modname).load_module(modname)
-        test_name, test_class = load_test_class(module)
+        test_name, test_class = load_class(module)
 
         try:
             test_class().run_test(targets, TEST_HOSTS)
         except TypeError:
             print '%s must have run_test(targets) method' % (test_name)
 
-#Load test class given a module
-def load_test_class(module):
+#Load class given a module
+def load_class(module):
     for name, obj in inspect.getmembers(module, inspect.isclass):
         return name, obj
 
