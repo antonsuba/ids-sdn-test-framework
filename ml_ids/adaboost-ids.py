@@ -21,6 +21,8 @@ PROTOCOLS = {
     pkt.ipv4.UDP_PROTOCOL : 5
 }
 
+TARGET_HOSTS_FILE = '/media/sf_ids-sdn/target_hosts.txt'
+
 class PacketChecker(object):
 
     def __init__(self, connection):
@@ -42,6 +44,19 @@ class PacketChecker(object):
 
         log.info('Switch active')
         log.info('Switch number:' +  str(self.number))
+
+        self.activate_ids()
+
+    def activate_ids(self, filepath=TARGET_HOSTS_FILE):
+        log.info('Acitvating IDS switches')
+
+        f = open(filepath, 'r')
+        for line in f:
+            num = int(line[0])
+
+            if num == self.number:
+                self.set_checker(True)
+                log.debug('IDS Switch %i activated' % num)
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
@@ -94,6 +109,7 @@ class PacketChecker(object):
                 log.info("Switch# " + str(self.number) + " Source IP: " +  str(ip.srcip))
 
                 #Do nothing if packet came from host
+                log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
                 if self.attached_host == ip.srcip:
                     return
 
@@ -125,10 +141,10 @@ class PacketChecker(object):
 
                 #Generate array for prediction then classify
                 entry = self.generate_prediction_entry(ip, dst_port, packet, packet_in)
-                # pred = self.clf.predict(entry)
+                pred = self.clf.predict(entry)
 
-                # log.info('Classification: %i' % pred)
-                pred = True
+                log.debug('%s - classification: %i' % (str(ip.srcip), pred))
+                # pred = True
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))

@@ -7,6 +7,7 @@ import argparse
 import sys
 import inspect
 import pkgutil
+import string
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
@@ -103,16 +104,29 @@ def log_target_hosts():
     for i in range(0, len(HOSTS)):
         host = net.get('h' + str(i))
         ipaddr = host.cmd('hostname -I')
-        targets_arr.append(ipaddr)
-        targets_file.write('h%s_%s' % (str(i), ipaddr))
+
+        targets_arr.append(ipaddr.rstrip())
+        targets_file.write('%i_%s' % (i + 1, ipaddr))
 
     return targets_arr
 
+def log_attack_hosts():
+    attack_file = open('attack_hosts.txt', 'w+')
+    attack_hosts_arr = list()
+
+    offset = len(SWITCHES)
+    for i in range(offset, len(BACKGROUND_HOSTS) + offset - 1):
+        host = net.get('h' + str(i))
+        ipaddr = host.cmd('hostname -I')
+
+        attack_hosts_arr.append(ipaddr.rstrip())
+        attack_file.write('%s' % (ipaddr))
+
 def generate_background_traffic(hosts, target_hosts, port, filename):
     for i in range(0, len(target_hosts)):
-        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s' % (target_hosts[i], port, filename)
+        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i], port, filename)
         print 'Executing ab command: %s' % ab_cmd
-        hosts[i].cmd(ab_cmd)
+        result = hosts[i].cmd(ab_cmd)
 
 #Load class given a module
 def load_class(module):
@@ -133,6 +147,7 @@ net.start()
 start_internal_servers('dummy_files', 8000)
 
 #Execute framework commands
+log_attack_hosts()
 targets_arr = log_target_hosts()
 exec_test_cases(args.test, targets_arr)
 
