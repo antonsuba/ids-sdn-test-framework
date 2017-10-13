@@ -4,7 +4,6 @@
 class DDOS(object):
 
     def __init__(self):
-        self.name = 'DDOS'
         self.packages = ['apache2-utils']
 
     def run_test(self, targets, hosts):
@@ -19,7 +18,6 @@ class DDOS(object):
             # host.cmd('sudo apt-get install %s' % (' '.join(packages)))
 
     def exec_attack(self, targets, hosts):
-        print 'Executing attack: %s' % self.name
         for i in range(0, len(targets)):
             filename = 'sample1.txt'
             hosts[i].cmd('ab -t 20 -c 5 -n 10000000 http://%s/%s' % (targets[i], filename))

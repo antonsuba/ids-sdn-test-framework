@@ -11,6 +11,7 @@ CLASSIFIER_FILE = '/home/mininet/pox/ext/adaboost-ids.pkl'
 log = core.getLogger()
 checker = list()
 switch_number = -1
+global_black_list = list()
 
 PROTOCOLS = {
     pkt.ipv4.ICMP_PROTOCOL: 0,
@@ -19,6 +20,8 @@ PROTOCOLS = {
     pkt.ipv4.TCP_PROTOCOL: 4,
     pkt.ipv4.UDP_PROTOCOL: 5
 }
+
+TARGET_HOSTS_FILE = '/media/sf_ids-sdn/target_hosts.txt'
 
 
 class PacketChecker(object):
@@ -42,9 +45,25 @@ class PacketChecker(object):
         log.info('Switch active')
         log.info('Switch number:' + str(self.number))
 
+        self.activate_ids()
+
+    def activate_ids(self, filepath=TARGET_HOSTS_FILE):
+        log.info('Acitvating IDS switches')
+
+        f = open(filepath, 'r')
+        for line in f:
+            num = int(line[0])
+
+            if num == self.number:
+                self.set_checker(True)
+                log.debug('IDS Switch %i activated' % num)
+
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
         print 'This checker has been set to: ' + str(enable)
+
+    def get_global_blacklist(self):
+        print 'Blacklist: %s' % str(global_black_list)
 
     def generate_prediction_entry(self, ip, dst_port, packet, packet_in):
         entry = list()
@@ -93,6 +112,7 @@ class PacketChecker(object):
                          str(ip.srcip))
 
                 # Do nothing if packet came from host
+                log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
                 if self.attached_host == ip.srcip:
                     return
 
@@ -127,12 +147,13 @@ class PacketChecker(object):
                                                        packet_in)
                 pred = self.clf.predict(entry)
 
-                log.info('Classification: %i' % pred)
+                log.debug('%s - classification: %i' % (str(ip.srcip), pred))
                 # pred = True
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))
                     self.black_list.append(str(ip.srcip))
+                    global_black_list.append(str(ip.srcip))
 
                     # Create openflow message to set block rule
                     self.set_block_rule(ip)
