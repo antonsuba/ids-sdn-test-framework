@@ -3,11 +3,13 @@ import pandas as pd
 import json
 import glob
 import gc
+import numpy as np
 from datetime import datetime
 from collections import defaultdict
 from sklearn import ensemble
 from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
+from sklearn.model_selection import train_test_split
 
 DATA_PATH = os.path.join('../data', 'IDS2012')
 
@@ -50,6 +52,7 @@ def load_data_set(data_path):
                 del item['totalDestinationPackets']
                 del item['totalSourcePackets']
                 del item['direction']
+                del item['duration']
 
             dataset += temp
         finally:
@@ -58,14 +61,6 @@ def load_data_set(data_path):
                 json_file = None
                 gc.collect()
     return dataset
-
-
-def generate_arr(dataset, classification):
-    classification_arr = dataset[classification].values
-    del dataset[classification]
-    dataset_arr = dataset.values
-
-    return dataset_arr, classification_arr
 
 
 def convert_class(x):
@@ -97,23 +92,22 @@ del data['sensorInterfaceId']
 del data['startTime']
 print data
 
-train_len = 1500000
-packets = data[:train_len]
-test_packets = data[train_len:]
-
-# Generate arrays
-packets_arr, classification_arr = generate_arr(packets, 'Tag')
-test_packets_arr, test_classification_arr = generate_arr(test_packets, 'Tag')
+y = data['Tag'].values
+del data['Tag']
+X_train, X_test, y_train, y_test = train_test_split(
+    data, y, stratify=y, test_size=0.2)
 
 # Train classifier
 clf = ensemble.AdaBoostClassifier()
-clf.fit(packets_arr, classification_arr)
+clf.fit(X_train, y_train)
 
 # Test classifier
-pred = clf.predict(test_packets_arr)
+pred = clf.predict(X_test)
+unique, counts = np.unique(pred, return_counts=True)
+print dict(zip(unique, counts))
 
 # Check accuracy
-accuracy = accuracy_score(test_classification_arr, pred)
+accuracy = accuracy_score(y_test, pred)
 print 'Accuracy:', accuracy
 
 # Save model
