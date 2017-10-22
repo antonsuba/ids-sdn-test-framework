@@ -66,6 +66,11 @@ class Switch (object):
     self.mac_to_port[packet.src] = packet_in.in_port
     src_port = packet_in.in_port
 
+    log.info('Packet: %s' % packet)
+    log.info('Packet src: %s' % packet.src)
+    log.info('Packet src_port: %s' % src_port)
+    log.info('Packet dst: %s' % packet.dst)
+    
     if packet.dst in self.mac_to_port:
         dst_port = self.mac_to_port[packet.dst]
 

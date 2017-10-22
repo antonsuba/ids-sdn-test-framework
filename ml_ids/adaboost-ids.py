@@ -6,7 +6,7 @@ import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 from sklearn.externals import joblib
 
-CLASSIFIER_FILE = '/home/mininet/pox/ext/adaboost-ids.pkl'
+CLASSIFIER_FILE = '/media/sf_ids-sdn/ml_ids/adaboost-ids.pkl'
 
 log = core.getLogger()
 checker = list()
@@ -36,7 +36,7 @@ class PacketChecker(object):
         self.black_list = list()
         self.timestamp_log = list()
         self.source_ip_count_list = {}
-        self.destination_port_count_list = {}
+        self.destination_ip_count_list = {}
         self.count = 0
 
         self.clf = joblib.load(CLASSIFIER_FILE)
@@ -65,11 +65,12 @@ class PacketChecker(object):
     def get_global_blacklist(self):
         print 'Blacklist: %s' % str(global_black_list)
 
-    def generate_prediction_entry(self, ip, dst_port, packet, packet_in):
+    def generate_prediction_entry(self, ip, dst_ip, dst_port, packet,
+                                  packet_in):
         entry = list()
 
         entry.append(dst_port)
-        entry.append(self.destination_port_count_list[dst_port])
+        entry.append(self.destination_ip_count_list[dst_ip])
         entry.append(1)
         entry.append(packet_in.in_port)
         entry.append(self.source_ip_count_list[ip.srcip])
@@ -108,8 +109,8 @@ class PacketChecker(object):
                 log.info("Switch# " + str(self.number) + " This isn't IP!")
             else:
 
-                log.info("Switch# " + str(self.number) + " Source IP: " +
-                         str(ip.srcip))
+                log.info("Switch#" + str(self.number) + " Source IP: " +
+                         str(ip.srcip) + 'Destination IP:' + str(ip.dstip))
 
                 # Do nothing if packet came from host
                 log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
@@ -125,16 +126,21 @@ class PacketChecker(object):
                     return EventHalt
 
                 # Check if destination port is recorded as a table rule
+                log.info(core.switch_pt.mac_to_port)
+                log.info('Packet dst: %s' % packet)
                 if packet.dst not in core.switch_pt.mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
                     return
 
                 # Check and update count of destination port
                 dst_port = core.switch_pt.mac_to_port[packet.dst]
-                if dst_port in self.destination_port_count_list:
-                    self.destination_port_count_list[dst_port] += 1
+
+                # dst_port = 1 # packet.dst
+                dst_ip = IPAddr(self.attached_host)
+                if dst_ip in self.destination_ip_count_list:
+                    self.destination_ip_count_list[dst_ip] += 1
                 else:
-                    self.destination_port_count_list[dst_port] = 1
+                    self.destination_ip_count_list[dst_ip] = 1
 
                 # Check and update count of source IP
                 if ip.srcip in self.source_ip_count_list:
@@ -143,12 +149,12 @@ class PacketChecker(object):
                     self.source_ip_count_list[ip.srcip] = 1
 
                 # Generate array for prediction then classify
-                entry = self.generate_prediction_entry(ip, dst_port, packet,
-                                                       packet_in)
-                pred = self.clf.predict(entry)
+                # entry = self.generate_prediction_entry(
+                #     ip, dst_ip, dst_port, packet, packet_in)
+                # pred = self.clf.predict(entry)
 
-                log.debug('%s - classification: %i' % (str(ip.srcip), pred))
-                # pred = True
+                # log.debug('%s - classification: %i' % (str(ip.srcip), pred))
+                pred = False
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))

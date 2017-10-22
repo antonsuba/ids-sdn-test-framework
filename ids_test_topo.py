@@ -31,10 +31,14 @@ net = Mininet(controller=RemoteController, link=TCLink)
 
 HOSTS = list()
 SWITCHES = list()
+ROUTERS = list()
 
 BACKGROUND_HOSTS =list()
 TEST_HOSTS = list()
 TEST_SWITCHES = list()
+
+#Temp variables
+IP_LIST = ['192.168.1.105', '192.168.2.170', '192.168.5.122', '192.168.9.121']
 
 #Generate internal network
 def create_network(switches, package=internal_network):
@@ -72,6 +76,35 @@ def create_background_network(hosts, ratio, package=external_network):
     print '\n%s generated with:\n' % topo_name
     print 'HOSTS: %s' % str(HOSTS)
     print 'SWITCHES: %s\n' % str(SWITCHES)
+
+def create_router():
+    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
+    net.addLink(ROUTERS[0], SWITCHES[0])
+
+def configure_router(ip_list):
+    r1 = ROUTERS[0]
+    r1.cmd('ifconfig r1-eth0 0')
+    r1.cmd('ip addr add 192.168.1.0/24 brd + dev r1-eth0')
+    r1.cmd('ip addr add 192.168.2.0/24 brd + dev r1-eth0')
+    r1.cmd('ip addr add 192.168.3.0/24 brd + dev r1-eth0')
+    r1.cmd('ip addr add 192.168.4.0/24 brd + dev r1-eth0')
+    r1.cmd('ip addr add 192.168.8.0/20 brd + dev r1-eth0')
+    r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
+
+    all_hosts = HOSTS + BACKGROUND_HOSTS
+    print len(ip_list)
+    print len(all_hosts)
+    for i in range(0, len(ip_list)):
+        all_hosts[i].cmd('ip route add default via %s' % ip_list[i])
+
+    s1 = SWITCHES[0]
+    s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
+    s1.cmd("ovs-ofctl add-flow s1 priority=65535,ip,dl_dst=00:00:00:00:01:00,actions=output:1")
+    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.1.0/24,actions=output:2")
+    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.2.0/24,actions=output:3")
+    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.3.0/24,actions=output:4")
+    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.4.0/24,actions=output:5")
+    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.8.0/20,actions=output:6")
 
 def start_internal_servers(directory, port):
     print '\nStarting internal network hosts servers:'
@@ -140,16 +173,20 @@ c0 = net.addController()
 #Create network topology
 create_network(3)
 create_background_network(args.hosts, args.ratio)
+create_router()
 
 net.start()
 
+#Link subnets to router
+configure_router(IP_LIST)
+
 #Start servers of internal network hosts
-start_internal_servers('dummy_files', 8000)
+# start_internal_servers('dummy_files', 8000)
 
 #Execute framework commands
 log_attack_hosts()
 targets_arr = log_target_hosts()
-exec_test_cases(args.test, targets_arr)
+# exec_test_cases(args.test, targets_arr)
 
 CLI(net)
 net.stop()
