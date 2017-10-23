@@ -8,6 +8,7 @@ import sys
 import inspect
 import pkgutil
 import string
+import csv
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
@@ -36,33 +37,20 @@ ROUTERS = list()
 BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
-INT_IP_FILE = 'internal_ip_addresses.txt'
-EXT_IP_FILE = 'external_ip_addresses.txt'
-INT_MAC_FILE = 'internal_mac_addresses.txt'
-INT_MAC_FILE = 'external_mac_addresses.txt'
+IP_MAC_FILE = 'config/ip_mac.txt'
 
 #Temp variables
 IP_LIST = ['192.168.1.105', '192.168.2.170', '192.168.5.122', '192.168.9.121']
 
-def read_data_file(filename):
-    data_list = list()
-
-    f = open(filename, 'r')
-    for line in f:
-        data_list.append(line.rstrip())
-    f.close()
-
-    return data_list
-
 #Generate internal network
-def create_network(switches, package=internal_network):
+def create_network(ip_mac_list, package=internal_network):
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
         module = importer.find_module(modname).load_module(modname)
         topo_name, topo_class = load_class(module)
 
         try:
-            topo_class().create_topo(switches, net, SWITCHES, HOSTS)
+            topo_class().create_topo(ip_mac_list, net, SWITCHES, HOSTS)
         except TypeError:
             print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
 
@@ -180,30 +168,79 @@ def load_class(module):
     for name, obj in inspect.getmembers(module, inspect.isclass):
         return name, obj
 
-setLogLevel('info')
+#Read file then append to list
+def read_data_file(filename):
+    data_list = list()
 
-c0 = net.addController()
+    f = open(filename, 'r')
+    for line in f:
+        data_list.append(line.rstrip())
+    f.close()
 
-#Create network topology
-create_network(3)
-create_background_network(args.hosts, args.ratio)
-create_router()
+    return data_list
 
-net.start()
+#Generate unique IP - MAC pair
+def get_ip_mac(filename):
 
-#Get IP and MAC address data
-int_ip_list = read_data_file(INT_IP_FILE)
+    def generate_ip_mac_pair(mac, ip):
+        if ':' not in mac or '.' not in ip:
+            return
 
-#Link subnets to router
-configure_router(IP_LIST)
+        if ',' in ip:
+            ip = ip.split(',')[0]
 
-#Start servers of internal network hosts
-# start_internal_servers('dummy_files', 8000)
+        print str((ip, mac))
+        return (ip, mac)
 
-#Execute framework commands
-log_attack_hosts()
-targets_arr = log_target_hosts()
-# exec_test_cases(args.test, targets_arr)
+    ip_mac_list = list()
 
-CLI(net)
-net.stop()
+    with open(filename, 'r') as f:
+        reader = csv.reader(f, dialect='excel-tab')
+        for row in reader:
+            pair1 = generate_ip_mac_pair(row[0], row[1])
+            pair2 = generate_ip_mac_pair(row[2], row[3])
+
+            if pair1 is not None and pair1 not in ip_mac_list:
+                ip_mac_list.append(pair1)
+            if pair2 is not None and pair1 not in ip_mac_list:
+                ip_mac_list.append(pair2)
+
+    print len(ip_mac_list)
+    print str(ip_mac_list[0])
+
+    return ip_mac_list
+
+def main():
+    setLogLevel('info')
+
+    #Create remote controller
+    c0 = net.addController()
+
+    #Get IP and MAC address data
+    ip_mac_list = get_ip_mac(IP_MAC_FILE)
+
+    #Create network topology
+    create_network(ip_mac_list)
+    create_background_network(args.hosts, args.ratio)
+    create_router()
+
+    net.start()
+
+    
+
+    #Link subnets to router
+    configure_router(IP_LIST)
+
+    #Start servers of internal network hosts
+    # start_internal_servers('dummy_files', 8000)
+
+    #Execute framework commands
+    log_attack_hosts()
+    targets_arr = log_target_hosts()
+    # exec_test_cases(args.test, targets_arr)
+
+    CLI(net)
+    net.stop()
+
+if __name__ == "__main__":
+    main()
