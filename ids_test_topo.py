@@ -33,12 +33,26 @@ HOSTS = list()
 SWITCHES = list()
 ROUTERS = list()
 
-BACKGROUND_HOSTS =list()
-TEST_HOSTS = list()
+BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
+
+INT_IP_FILE = 'internal_ip_addresses.txt'
+EXT_IP_FILE = 'external_ip_addresses.txt'
+INT_MAC_FILE = 'internal_mac_addresses.txt'
+INT_MAC_FILE = 'external_mac_addresses.txt'
 
 #Temp variables
 IP_LIST = ['192.168.1.105', '192.168.2.170', '192.168.5.122', '192.168.9.121']
+
+def read_data_file(filename):
+    data_list = list()
+
+    f = open(filename, 'r')
+    for line in f:
+        data_list.append(line.rstrip())
+    f.close()
+
+    return data_list
 
 #Generate internal network
 def create_network(switches, package=internal_network):
@@ -125,7 +139,7 @@ def exec_test_cases(test, targets, package=test_cases):
         try:
             print 'Executing %s' % test_name
             generate_background_traffic(BACKGROUND_HOSTS, targets, 8000, 'sample1.txt')
-            # test_class().run_test(targets, TEST_HOSTS)
+            # test_class().run_test(targets, BACKGROUND_HOSTS)
         except TypeError:
             print 'Error. %s must have run_test(targets) method' % (test_name)
 
@@ -176,6 +190,9 @@ create_background_network(args.hosts, args.ratio)
 create_router()
 
 net.start()
+
+#Get IP and MAC address data
+int_ip_list = read_data_file(INT_IP_FILE)
 
 #Link subnets to router
 configure_router(IP_LIST)

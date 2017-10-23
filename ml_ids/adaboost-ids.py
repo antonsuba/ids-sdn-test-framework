@@ -71,7 +71,7 @@ class PacketChecker(object):
 
         entry.append(dst_port)
         entry.append(self.destination_ip_count_list[dst_ip])
-        entry.append(1)
+        # entry.append(1)
         entry.append(packet_in.in_port)
         entry.append(self.source_ip_count_list[ip.srcip])
 
@@ -149,12 +149,12 @@ class PacketChecker(object):
                     self.source_ip_count_list[ip.srcip] = 1
 
                 # Generate array for prediction then classify
-                # entry = self.generate_prediction_entry(
-                #     ip, dst_ip, dst_port, packet, packet_in)
-                # pred = self.clf.predict(entry)
+                entry = self.generate_prediction_entry(
+                    ip, dst_ip, dst_port, packet, packet_in)
+                pred = self.clf.predict(entry)
 
-                # log.debug('%s - classification: %i' % (str(ip.srcip), pred))
-                pred = False
+                log.debug('%s - classification: %i' % (str(ip.srcip), pred))
+                # pred = False
 
                 if pred:
                     log.info("Added to blacklist: %s" % str(ip.srcip))
