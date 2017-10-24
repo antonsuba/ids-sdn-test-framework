@@ -59,10 +59,10 @@ def create_network(ip_mac_list, package=internal_network):
     print 'SWITCHES: %s\n' % str(SWITCHES)
 
 #Generate test network
-def create_background_network(hosts, ratio, package=external_network):
+def create_background_network(ext_mac_list, package=external_network):
     offset = len(SWITCHES)
     # total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
-    total_hosts = hosts
+    # total_hosts = hosts
 
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
@@ -70,7 +70,7 @@ def create_background_network(hosts, ratio, package=external_network):
         topo_name, topo_class = load_class(module)
 
         try:
-            topo_class().create_background_generator(net, total_hosts, offset, SWITCHES,
+            topo_class().create_background_generator(net, ext_mac_list, offset, SWITCHES,
                                                      BACKGROUND_HOSTS, TEST_SWITCHES)
         except TypeError:
             print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
@@ -83,30 +83,34 @@ def create_router():
     ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
     net.addLink(ROUTERS[0], SWITCHES[0])
 
-def configure_router(ip_list):
+def configure_router(int_ip_mac, ext_ip_mac):
+    subnets = set()
+
+    ip_mac = int_ip_mac + ext_ip_mac
+
     r1 = ROUTERS[0]
     r1.cmd('ifconfig r1-eth0 0')
-    r1.cmd('ip addr add 192.168.1.0/24 brd + dev r1-eth0')
-    r1.cmd('ip addr add 192.168.2.0/24 brd + dev r1-eth0')
-    r1.cmd('ip addr add 192.168.3.0/24 brd + dev r1-eth0')
-    r1.cmd('ip addr add 192.168.4.0/24 brd + dev r1-eth0')
-    r1.cmd('ip addr add 192.168.8.0/20 brd + dev r1-eth0')
+
+    for pair in ip_mac:
+        subnet = pair[0].rsplit('.', 1)[:-1] + '0/24'
+        if subnet not in subnets:
+            r1.cmd('ip addr add %s brd + dev r1-eth0' % subnet)
+
     r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
 
-    all_hosts = HOSTS + BACKGROUND_HOSTS
-    print len(ip_list)
-    print len(all_hosts)
-    for i in range(0, len(ip_list)):
-        all_hosts[i].cmd('ip route add default via %s' % ip_list[i])
+    for i in range(0, len(int_ip_mac)):
+        HOSTS[i].cmd('ip route add default via %s' % int_ip_mac[i][0])
+
+    for i in range(0, len(ext_ip_mac)):
+        BACKGROUND_HOSTS[i].cmd('ip route add default via %s' % int_ip_mac[i][0])
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
     s1.cmd("ovs-ofctl add-flow s1 priority=65535,ip,dl_dst=00:00:00:00:01:00,actions=output:1")
-    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.1.0/24,actions=output:2")
-    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.2.0/24,actions=output:3")
-    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.3.0/24,actions=output:4")
-    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.4.0/24,actions=output:5")
-    s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=192.168.8.0/20,actions=output:6")
+
+    for i in range(0, len(subnets)):
+        subnet = subnets.pop()
+        s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=%s,actions=output:%i" % (subnet, i + 2))
 
 def start_internal_servers(directory, port):
     print '\nStarting internal network hosts servers:'
@@ -182,6 +186,8 @@ def read_data_file(filename):
 #Generate unique IP - MAC pair
 def get_ip_mac(filename):
 
+    ip_mac_list = set()
+
     def generate_ip_mac_pair(mac, ip):
         if ':' not in mac or '.' not in ip:
             return
@@ -189,26 +195,33 @@ def get_ip_mac(filename):
         if ',' in ip:
             ip = ip.split(',')[0]
 
-        print str((ip, mac))
         return (ip, mac)
-
-    ip_mac_list = list()
 
     with open(filename, 'r') as f:
         reader = csv.reader(f, dialect='excel-tab')
         for row in reader:
-            pair1 = generate_ip_mac_pair(row[0], row[1])
-            pair2 = generate_ip_mac_pair(row[2], row[3])
+            for mac, ip in zip(*[iter(row)]*2):
+                pair = generate_ip_mac_pair(mac, ip)
 
-            if pair1 is not None and pair1 not in ip_mac_list:
-                ip_mac_list.append(pair1)
-            if pair2 is not None and pair1 not in ip_mac_list:
-                ip_mac_list.append(pair2)
+            if pair is not None:
+                ip_mac_list.add(pair)
 
-    print len(ip_mac_list)
-    print str(ip_mac_list[0])
+    print 'Extracted %i IP-MAC pairs' % len(ip_mac_list)
 
-    return ip_mac_list
+    return list(ip_mac_list)
+
+#Split IP - MAC list based on IP
+def split_ip_mac(ip_mac_list, int_net_ip_pattern):
+    int_ip_mac = list()
+    ext_ip_mac = list()
+
+    for pair in ip_mac_list:
+        if int_net_ip_pattern in pair[0]:
+            int_ip_mac.append(pair)
+        else:
+            ext_ip_mac.append(pair)
+
+    return int_ip_mac, ext_ip_mac
 
 def main():
     setLogLevel('info')
@@ -218,18 +231,19 @@ def main():
 
     #Get IP and MAC address data
     ip_mac_list = get_ip_mac(IP_MAC_FILE)
+    int_ip_mac, ext_ip_mac = split_ip_mac(ip_mac_list, '192.168')
+    print 'Int net length: %i' % len(int_ip_mac)
+    print 'Ext net length: %i' % len(ext_ip_mac)
 
     #Create network topology
-    create_network(ip_mac_list)
-    create_background_network(args.hosts, args.ratio)
+    create_network(int_ip_mac)
+    create_background_network(ext_ip_mac)
     create_router()
 
     net.start()
 
-    
-
     #Link subnets to router
-    configure_router(IP_LIST)
+    configure_router(int_ip_mac, ext_ip_mac)
 
     #Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
