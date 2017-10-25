@@ -38,9 +38,8 @@ BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
 IP_MAC_FILE = 'config/ip_mac.txt'
-
-#Temp variables
-IP_LIST = ['192.168.1.105', '192.168.2.170', '192.168.5.122', '192.168.9.121']
+TARGET_HOSTS_FILE = 'config/target_hosts.txt'
+ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
 #Generate internal network
 def create_network(ip_mac_list, package=internal_network):
@@ -61,23 +60,24 @@ def create_network(ip_mac_list, package=internal_network):
 #Generate test network
 def create_background_network(ext_mac_list, package=external_network):
     offset = len(SWITCHES)
-    # total_hosts = int(hosts + (hosts * ((1 - ratio) * 10)))
-    # total_hosts = hosts
 
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
         module = importer.find_module(modname).load_module(modname)
         topo_name, topo_class = load_class(module)
 
+        # topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
+        #                              BACKGROUND_HOSTS, TEST_SWITCHES)
+
         try:
-            topo_class().create_background_generator(net, ext_mac_list, offset, SWITCHES,
-                                                     BACKGROUND_HOSTS, TEST_SWITCHES)
+            topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
+                                     BACKGROUND_HOSTS, TEST_SWITCHES)
         except TypeError:
-            print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
+            print '%s must have create_topo(Mininet, ip_mac_list, offset, switches, test_hosts, test_switches) method' % topo_name
 
     print '\n%s generated with:\n' % topo_name
-    print 'HOSTS: %s' % str(HOSTS)
-    print 'SWITCHES: %s\n' % str(SWITCHES)
+    print 'HOSTS: %s' % str(BACKGROUND_HOSTS)
+    print 'SWITCHES: %s\n' % str(TEST_SWITCHES)
 
 def create_router():
     ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
@@ -92,7 +92,7 @@ def configure_router(int_ip_mac, ext_ip_mac):
     r1.cmd('ifconfig r1-eth0 0')
 
     for pair in ip_mac:
-        subnet = pair[0].rsplit('.', 1)[:-1] + '0/24'
+        subnet = str(pair[0].rsplit('.', 1)[:-1]) + '0/24'
         if subnet not in subnets:
             r1.cmd('ip addr add %s brd + dev r1-eth0' % subnet)
 
@@ -102,7 +102,7 @@ def configure_router(int_ip_mac, ext_ip_mac):
         HOSTS[i].cmd('ip route add default via %s' % int_ip_mac[i][0])
 
     for i in range(0, len(ext_ip_mac)):
-        BACKGROUND_HOSTS[i].cmd('ip route add default via %s' % int_ip_mac[i][0])
+        BACKGROUND_HOSTS[i].cmd('ip route add default via %s' % ext_ip_mac[i][0])
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
@@ -137,7 +137,7 @@ def exec_test_cases(test, targets, package=test_cases):
 
 #Generate hosts directory of internal network
 def log_target_hosts():
-    targets_file = open('target_hosts.txt', 'w+')
+    targets_file = open(TARGET_HOSTS_FILE, 'w+')
     targets_arr = list()
 
     for i in range(0, len(HOSTS)):
@@ -150,7 +150,7 @@ def log_target_hosts():
     return targets_arr
 
 def log_attack_hosts():
-    attack_file = open('attack_hosts.txt', 'w+')
+    attack_file = open(ATTACK_HOSTS_FILE, 'w+')
     attack_hosts_arr = list()
 
     offset = len(SWITCHES)
