@@ -107,7 +107,7 @@ def create_router():
     net.addLink(ROUTERS[0], SWITCHES[0])
 
 
-def configure_router(int_mac_ip, ext_mac_ip):
+def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
     subnets = set()
 
     mac_ip = int_mac_ip + ext_mac_ip
@@ -116,18 +116,30 @@ def configure_router(int_mac_ip, ext_mac_ip):
     r1.cmd('ifconfig r1-eth0 0')
 
     for pair in mac_ip:
-        subnet = str(pair[0].rsplit('.', 1)[:-1]) + '0/24'
+        subnet = str(pair[1].rsplit('.', 1)[:-1]) + '0/24'
         if subnet not in subnets:
             r1.cmd('ip addr add %s brd + dev r1-eth0' % subnet)
 
     r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
 
     for i in range(0, len(int_mac_ip)):
-        HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][0])
+        HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
 
-    for i in range(0, len(ext_mac_ip)):
-        BACKGROUND_HOSTS[i].cmd(
-            'ip route add default via %s' % ext_mac_ip[i][0])
+    try:
+        host_num = 0
+
+        for mac, ip_set in ext_mac_ip_dict.iteritems():
+            ip_list = list(ip_set)
+            for ip in ip_list:
+                BACKGROUND_HOSTS[host_num].cmd(
+                    'ip route add default via %s' % ip)
+
+            host_num += 1
+
+    except AttributeError:
+        for i in range(0, len(ext_mac_ip)):
+            BACKGROUND_HOSTS[i].cmd(
+                'ip route add default via %s' % ext_mac_ip[i][1])
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
@@ -166,6 +178,7 @@ def exec_test_cases(test, targets, package=test_cases):
             # test_class().run_test(targets, BACKGROUND_HOSTS)
         except TypeError:
             print 'Error. %s must have run_test(targets) method' % (test_name)
+
 
 def log_target_hosts():
     targets_file = open(TARGET_HOSTS_FILE, 'w+')
@@ -244,22 +257,24 @@ def split_mac_ip(mac_ip_set, int_net_ip_pattern):
     ext_mac_ip = list()
 
     for pair in mac_ip_set:
-        if int_net_ip_pattern in pair[0]:
+        if int_net_ip_pattern in pair[1]:
             int_mac_ip.append(pair)
         else:
             ext_mac_ip.append(pair)
 
     return int_mac_ip, ext_mac_ip
 
+
 #Generate dictionary with MAC as key and set of IP as value
-def get_mac_ip_dict(mac_ip_set):
+def aggregate_mac_ip(mac_ip_set):
     mac_ips = defaultdict(set)
 
     for pair in mac_ip_set:
-        mac_address, ip_list = pair[0], pair[1]
-        mac_ips[mac_address] |= set(ip_list)
+        mac_address, ip = pair[0], pair[1]
+        mac_ips[mac_address] |= set([ip])
 
-    return mac_ip_set
+    return mac_ips
+
 
 def main():
     setLogLevel('info')
@@ -270,7 +285,7 @@ def main():
     # Get IP and MAC address data
     mac_ip_set = read_mac_ip_file(MAC_IP_FILE)
     int_mac_ip, ext_mac_ip = split_mac_ip(mac_ip_set, '192.168')
-    ext_mac_ip_dict = get_mac_ip_dict(ext_mac_ip)
+    ext_mac_ip_dict = aggregate_mac_ip(ext_mac_ip)
 
     print 'Int net length: %i' % len(int_mac_ip)
     print 'Ext net length: %i' % len(ext_mac_ip_dict)
@@ -283,7 +298,7 @@ def main():
     net.start()
 
     # Link subnets to router
-    configure_router(int_mac_ip, ext_mac_ip)
+    configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict)
 
     # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
@@ -291,7 +306,7 @@ def main():
     # Execute framework commands
     log_attack_hosts()
     targets_arr = log_target_hosts()
-    exec_test_cases(args.test, targets_arr)
+    # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()
