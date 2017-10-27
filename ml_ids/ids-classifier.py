@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = os.path.join('../data', 'IDS2012')
+DATA_PATH = '../training_data'
 
 
 def load_data_set(data_path):

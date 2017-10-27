@@ -1,7 +1,6 @@
 env/
 .ipynb_checkpoints/
 pcap/
-training_data/
 .vscode
 .idea
 *.pyc
