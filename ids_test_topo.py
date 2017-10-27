@@ -9,6 +9,7 @@ import inspect
 import pkgutil
 import string
 import csv
+import re
 from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
@@ -241,12 +242,11 @@ def read_mac_ip_file(filename):
     mac_ip_set = set()
 
     with open(filename, 'r') as f:
-        reader = csv.reader(f, dialect='excel-tab')
-        for row in reader:
-            for mac, ip in zip(* [iter(row)] * 2):
-                if ':' not in mac or '.' not in ip:
-                    continue
-                mac_ip_set.add((mac, ip.split(',')[0]))
+        p = '\w+:\w+:\w+:\w+:\w+:\w+\s\d+\.\d+\.\d+\.\d+'
+        pairs = re.findall(p, f.read())
+        for pair in pairs:
+            mac, ip = pair.split()
+            mac_ip_set.add((mac, ip))
 
     return mac_ip_set
 
@@ -265,7 +265,7 @@ def split_mac_ip(mac_ip_set, int_net_ip_pattern):
     return int_mac_ip, ext_mac_ip
 
 
-#Generate dictionary with MAC as key and set of IP as value
+# Generate dictionary with MAC as key and set of IP as value
 def aggregate_mac_ip(mac_ip_set):
     mac_ips = defaultdict(set)
 
