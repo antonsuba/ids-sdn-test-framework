@@ -9,6 +9,7 @@ import inspect
 import pkgutil
 import string
 import csv
+from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
@@ -227,29 +228,19 @@ def read_data_file(filename):
 # Generate unique IP - MAC pair
 def get_ip_mac(filename):
 
+    mac_ips = defaultdict(set)
     ip_mac_list = set()
-
-    def generate_ip_mac_pair(mac, ip):
-        if ':' not in mac or '.' not in ip:
-            return
-
-        if ',' in ip:
-            ip = ip.split(',')[0]
-
-        return (ip, mac)
 
     with open(filename, 'r') as f:
         reader = csv.reader(f, dialect='excel-tab')
         for row in reader:
             for mac, ip in zip(* [iter(row)] * 2):
-                pair = generate_ip_mac_pair(mac, ip)
+                if ':' not in mac or '.' not in ip:
+                    continue
+                mac_address, ip_list = mac, ip.split(',')
+                mac_ips[mac_address] |= set(ip_list)
 
-            if pair is not None:
-                ip_mac_list.add(pair)
-
-    print 'Extracted %i IP-MAC pairs' % len(ip_mac_list)
-
-    return list(ip_mac_list)
+    return mac_ips
 
 
 # Split IP - MAC list based on IP
