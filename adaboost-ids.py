@@ -71,7 +71,6 @@ class PacketChecker(object):
 
         entry.append(dst_port)
         entry.append(self.destination_ip_count_list[dst_ip])
-        # entry.append(1)
         entry.append(packet_in.in_port)
         entry.append(self.source_ip_count_list[ip.srcip])
 
