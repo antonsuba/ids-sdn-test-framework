@@ -22,7 +22,7 @@ class IDSMetricLogger(object):
         global_blocked_ips[str(ip)] = classification
 
     def write_results(self, filepath):
-        attack_hosts = self.get_attack_hosts(ATTACK_HOSTS_FILE)
+        attack_hosts = self.get_hosts(ATTACK_HOSTS_FILE)
         attack_hosts = [x.rstrip() for x in attack_hosts]
         log.info('Attack Hosts: %s' % str(attack_hosts))
 
@@ -40,11 +40,17 @@ class IDSMetricLogger(object):
         f = open(filepath, 'w')
         f.write('IDS TEST RESULTS\n\n')
 
-        f.write('STRESS TEST 1: NORMAL BACKGROUND TRAFFIC\n')
+        # f.write('STRESS TEST 1: NORMAL BACKGROUND TRAFFIC\n')
 
         f.write('TRUE POSITIVES %i / %i attack hosts\n' % (len(correct_blocks), len(attack_hosts)))
-        for x in correct_blocks:
-            f.write('%s\n' % x)
+        # for x in correct_blocks:
+        #     f.write('%s\n' % x)
+
+        f.write('\n')
+
+        f.write('TRUE NEGATIVE %i / %i total hosts\n' % (len(correct_blocks), len(attack_hosts)))
+        # for x in correct_blocks:
+        #     f.write('%s\n' % x)
 
         f.write('\n')
 
@@ -62,21 +68,21 @@ class IDSMetricLogger(object):
 
         f.write('\n')        
 
-        f.write('STRESS TEST 2: HIGH CPU LOAD\n')
+        # f.write('STRESS TEST 2: HIGH CPU LOAD\n')
 
-        f.write('STRESS TEST 3: HIGH VOLUME TRAFFIC\n')
+        # f.write('STRESS TEST 3: HIGH VOLUME TRAFFIC\n')
 
         f.close()
 
-    def get_attack_hosts(self, filepath):
-        attack_hosts = list()
+    def get_hosts(self, filepath):
+        hosts = list()
 
         f = open(filepath, 'r')
         for line in f:
-            attack_hosts.append(line)
+            hosts.append(line)
 
         f.close()
-        return attack_hosts
+        return hosts
 
     def _handle_ConnectionDown(self, event):
         self.write_results(RESULT_FILE)

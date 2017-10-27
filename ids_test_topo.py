@@ -66,9 +66,6 @@ def create_background_network(ext_mac_list, package=external_network):
         module = importer.find_module(modname).load_module(modname)
         topo_name, topo_class = load_class(module)
 
-        # topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
-        #                              BACKGROUND_HOSTS, TEST_SWITCHES)
-
         try:
             topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
                                      BACKGROUND_HOSTS, TEST_SWITCHES)
@@ -135,7 +132,6 @@ def exec_test_cases(test, targets, package=test_cases):
         except TypeError:
             print 'Error. %s must have run_test(targets) method' % (test_name)
 
-#Generate hosts directory of internal network
 def log_target_hosts():
     targets_file = open(TARGET_HOSTS_FILE, 'w+')
     targets_arr = list()
@@ -185,7 +181,6 @@ def read_data_file(filename):
 
 #Generate unique IP - MAC pair
 def get_ip_mac(filename):
-
     ip_mac_list = set()
 
     def generate_ip_mac_pair(mac, ip):
@@ -251,7 +246,7 @@ def main():
     #Execute framework commands
     log_attack_hosts()
     targets_arr = log_target_hosts()
-    # exec_test_cases(args.test, targets_arr)
+    exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()

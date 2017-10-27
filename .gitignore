@@ -5,3 +5,4 @@ training_data/
 .vscode
 .idea
 *.pyc
+*.pem
