@@ -18,14 +18,36 @@ import internal_network
 import external_network
 import test_cases
 
-#Setup arguments
-parser = argparse.ArgumentParser(description='Generates n number of hosts to simulate normal and anomalous attack behaviors')
-parser.add_argument('-n', '--hosts', dest='hosts', default=3, type=int, 
-                    help='Generates an n number of attack hosts based on the quantity specified (default: 3 hosts')
-parser.add_argument('-r', '--ratio', dest='ratio', default=0.1, type=int,
-                    help='Anomalous to normal hosts ratio. Generates normal traffic hosts based on ratio specified')
-parser.add_argument('-t', '--test', dest='test', default='all', type=str,
-                    help='Specify tests (Defaults to all)')
+# Setup arguments
+parser = argparse.ArgumentParser(
+    description=
+    'Generates n number of hosts to simulate normal and anomalous attack behaviors'
+)
+parser.add_argument(
+    '-n',
+    '--hosts',
+    dest='hosts',
+    default=3,
+    type=int,
+    help=
+    'Generates an n number of attack hosts based on the quantity specified (default: 3 hosts'
+)
+parser.add_argument(
+    '-r',
+    '--ratio',
+    dest='ratio',
+    default=0.1,
+    type=int,
+    help=
+    'Anomalous to normal hosts ratio. Generates normal traffic hosts based on ratio specified'
+)
+parser.add_argument(
+    '-t',
+    '--test',
+    dest='test',
+    default='all',
+    type=str,
+    help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
 net = Mininet(controller=RemoteController, link=TCLink)
@@ -41,7 +63,8 @@ IP_MAC_FILE = 'config/ip_mac.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
-#Generate internal network
+
+# Generate internal network
 def create_network(ip_mac_list, package=internal_network):
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
@@ -57,7 +80,8 @@ def create_network(ip_mac_list, package=internal_network):
     print 'HOSTS: %s' % str(HOSTS)
     print 'SWITCHES: %s\n' % str(SWITCHES)
 
-#Generate test network
+
+# Generate test network
 def create_background_network(ext_mac_list, package=external_network):
     offset = len(SWITCHES)
 
@@ -79,9 +103,11 @@ def create_background_network(ext_mac_list, package=external_network):
     print 'HOSTS: %s' % str(BACKGROUND_HOSTS)
     print 'SWITCHES: %s\n' % str(TEST_SWITCHES)
 
+
 def create_router():
     ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
     net.addLink(ROUTERS[0], SWITCHES[0])
+
 
 def configure_router(int_ip_mac, ext_ip_mac):
     subnets = set()
@@ -102,15 +128,21 @@ def configure_router(int_ip_mac, ext_ip_mac):
         HOSTS[i].cmd('ip route add default via %s' % int_ip_mac[i][0])
 
     for i in range(0, len(ext_ip_mac)):
-        BACKGROUND_HOSTS[i].cmd('ip route add default via %s' % ext_ip_mac[i][0])
+        BACKGROUND_HOSTS[i].cmd(
+            'ip route add default via %s' % ext_ip_mac[i][0])
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
-    s1.cmd("ovs-ofctl add-flow s1 priority=65535,ip,dl_dst=00:00:00:00:01:00,actions=output:1")
+    s1.cmd(
+        "ovs-ofctl add-flow s1 priority=65535,ip,dl_dst=00:00:00:00:01:00,actions=output:1"
+    )
 
     for i in range(0, len(subnets)):
         subnet = subnets.pop()
-        s1.cmd("ovs-ofctl add-flow s1 priority=10,ip,nw_dst=%s,actions=output:%i" % (subnet, i + 2))
+        s1.cmd(
+            "ovs-ofctl add-flow s1 priority=10,ip,nw_dst=%s,actions=output:%i"
+            % (subnet, i + 2))
+
 
 def start_internal_servers(directory, port):
     print '\nStarting internal network hosts servers:'
@@ -119,7 +151,8 @@ def start_internal_servers(directory, port):
         host.cmd('python -m SimpleHTTPServer %s &' % str(port))
         print '%s server started' % str(host)
 
-#Run specified test (Defaults to: all tests)
+
+# Run specified test (Defaults to: all tests)
 def exec_test_cases(test, targets, package=test_cases):
     for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
         if modname in test_cases.EXCLUDE:
@@ -130,12 +163,14 @@ def exec_test_cases(test, targets, package=test_cases):
 
         try:
             print 'Executing %s' % test_name
-            generate_background_traffic(BACKGROUND_HOSTS, targets, 8000, 'sample1.txt')
+            generate_background_traffic(BACKGROUND_HOSTS, targets, 8000,
+                                        'sample1.txt')
             # test_class().run_test(targets, BACKGROUND_HOSTS)
         except TypeError:
             print 'Error. %s must have run_test(targets) method' % (test_name)
 
-#Generate hosts directory of internal network
+
+# Generate hosts directory of internal network
 def log_target_hosts():
     targets_file = open(TARGET_HOSTS_FILE, 'w+')
     targets_arr = list()
@@ -149,6 +184,7 @@ def log_target_hosts():
 
     return targets_arr
 
+
 def log_attack_hosts():
     attack_file = open(ATTACK_HOSTS_FILE, 'w+')
     attack_hosts_arr = list()
@@ -161,18 +197,22 @@ def log_attack_hosts():
         attack_hosts_arr.append(ipaddr.rstrip())
         attack_file.write('%s' % (ipaddr))
 
+
 def generate_background_traffic(hosts, target_hosts, port, filename):
     for i in range(0, len(target_hosts)):
-        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i], port, filename)
+        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i], port,
+                                                      filename)
         print 'Executing ab command: %s' % ab_cmd
         result = hosts[i].cmd(ab_cmd)
 
-#Load class given a module
+
+# Load class given a module
 def load_class(module):
     for name, obj in inspect.getmembers(module, inspect.isclass):
         return name, obj
 
-#Read file then append to list
+
+# Read file then append to list
 def read_data_file(filename):
     data_list = list()
 
@@ -183,7 +223,8 @@ def read_data_file(filename):
 
     return data_list
 
-#Generate unique IP - MAC pair
+
+# Generate unique IP - MAC pair
 def get_ip_mac(filename):
 
     ip_mac_list = set()
@@ -200,7 +241,7 @@ def get_ip_mac(filename):
     with open(filename, 'r') as f:
         reader = csv.reader(f, dialect='excel-tab')
         for row in reader:
-            for mac, ip in zip(*[iter(row)]*2):
+            for mac, ip in zip(* [iter(row)] * 2):
                 pair = generate_ip_mac_pair(mac, ip)
 
             if pair is not None:
@@ -210,7 +251,8 @@ def get_ip_mac(filename):
 
     return list(ip_mac_list)
 
-#Split IP - MAC list based on IP
+
+# Split IP - MAC list based on IP
 def split_ip_mac(ip_mac_list, int_net_ip_pattern):
     int_ip_mac = list()
     ext_ip_mac = list()
@@ -223,13 +265,14 @@ def split_ip_mac(ip_mac_list, int_net_ip_pattern):
 
     return int_ip_mac, ext_ip_mac
 
+
 def main():
     setLogLevel('info')
 
-    #Create remote controller
+    # Create remote controller
     c0 = net.addController()
 
-    #Get IP and MAC address data
+    # Get IP and MAC address data
     ip_mac_list = get_ip_mac(IP_MAC_FILE)
     int_ip_mac, ext_ip_mac = split_ip_mac(ip_mac_list, '192.168')
     print 'Int net length: %i' % len(int_ip_mac)
@@ -242,19 +285,20 @@ def main():
 
     net.start()
 
-    #Link subnets to router
+    # Link subnets to router
     configure_router(int_ip_mac, ext_ip_mac)
 
-    #Start servers of internal network hosts
+    # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
 
-    #Execute framework commands
+    # Execute framework commands
     log_attack_hosts()
     targets_arr = log_target_hosts()
     # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()
+
 
 if __name__ == "__main__":
     main()
