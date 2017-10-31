@@ -304,7 +304,7 @@ def main():
     # start_internal_servers('dummy_files', 8000)
 
     # Execute framework commands
-    log_attack_hosts()
+    # log_attack_hosts()
     targets_arr = log_target_hosts()
     # exec_test_cases(args.test, targets_arr)
 

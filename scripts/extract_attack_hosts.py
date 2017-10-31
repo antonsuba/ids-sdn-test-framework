@@ -30,7 +30,7 @@ def extract_attack_hosts(data_path):
                 json_file.close()
                 json_file = None
 
-    attack_file.write(total_hosts + '\n')
+    attack_file.write(str(total_hosts) + '\n')
     for ip in attack_hosts:
         attack_file.write(ip + '\n')
 
