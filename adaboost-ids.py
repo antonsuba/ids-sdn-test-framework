@@ -6,7 +6,7 @@ import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 from sklearn.externals import joblib
 
-CLASSIFIER_FILE = '/media/sf_ids-sdn/ml_ids/adaboost-ids.pkl'
+CLASSIFIER_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/ml_ids/adaboost-ids.pkl'
 
 log = core.getLogger()
 checker = list()
@@ -21,7 +21,7 @@ PROTOCOLS = {
     pkt.ipv4.UDP_PROTOCOL: 5
 }
 
-TARGET_HOSTS_FILE = '/media/sf_ids-sdn/config/target_hosts.txt'
+TARGET_HOSTS_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/config/target_hosts.txt'
 
 
 class PacketChecker(object):
@@ -52,7 +52,7 @@ class PacketChecker(object):
 
         f = open(filepath, 'r')
         for line in f:
-            num = int(line[0])
+            num = int(line.split("_")[0])
 
             if num == self.number:
                 self.set_checker(True)
