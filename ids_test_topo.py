@@ -104,7 +104,7 @@ def create_background_network(ext_mac_list, package=external_network):
 
 
 def create_router():
-    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
+    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00', ip='192.168.1.1'))
     net.addLink(ROUTERS[0], SWITCHES[0])
 
 
@@ -123,8 +123,9 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
 
     r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
 
-    for i in range(0, len(int_mac_ip)):
-        HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
+    for i in range(len(int_mac_ip)):
+        # HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
+        HOSTS[i].cmd('ip route add default via 192.168.1.1')
 
     try:
         host_num = 0
@@ -133,14 +134,16 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
             ip_list = list(ip_set)
             for ip in ip_list:
                 BACKGROUND_HOSTS[host_num].cmd(
-                    'ip route add default via %s' % ip)
+                    # 'ip route add default via %s' % ip)
+                    'ip route add default via 192.168.1.1')
 
             host_num += 1
 
     except AttributeError:
-        for i in range(0, len(ext_mac_ip)):
+        for i in range(len(ext_mac_ip)):
             BACKGROUND_HOSTS[i].cmd(
-                'ip route add default via %s' % ext_mac_ip[i][1])
+                # 'ip route add default via %s' % ext_mac_ip[i][1])
+                'ip route add default via 192.168.1.1')
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
