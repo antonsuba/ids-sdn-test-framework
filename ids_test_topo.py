@@ -104,7 +104,7 @@ def create_background_network(ext_mac_list, package=external_network):
 
 
 def create_router():
-    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00', ip='192.168.1.1'))
+    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
     net.addLink(ROUTERS[0], SWITCHES[0])
 
 
@@ -117,7 +117,8 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
     r1.cmd('ifconfig r1-eth0 0')
 
     for pair in mac_ip:
-        subnet = str(pair[1].rsplit('.', 1)[:-1]) + '0/24'
+        subnet = (pair[1].rsplit('.', 1)[:-1])[0] + '.0/24'
+        print subnet
         if subnet not in subnets:
             r1.cmd('ip addr add %s brd + dev r1-eth0' % subnet)
 
@@ -125,7 +126,11 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
 
     for i in range(len(int_mac_ip)):
         # HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
-        HOSTS[i].cmd('ip route add default via 192.168.1.1')
+        HOSTS[i].cmd('ip route add default via 192.168.2.0')
+
+    for host in BACKGROUND_HOSTS:
+        print str(host)
+        host.cmd('ip route add default via 192.168.2.0')
 
     try:
         host_num = 0
@@ -135,7 +140,7 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
             for ip in ip_list:
                 BACKGROUND_HOSTS[host_num].cmd(
                     # 'ip route add default via %s' % ip)
-                    'ip route add default via 192.168.1.1')
+                    'ip route add default via 192.168.2.0')
 
             host_num += 1
 
@@ -143,7 +148,7 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
         for i in range(len(ext_mac_ip)):
             BACKGROUND_HOSTS[i].cmd(
                 # 'ip route add default via %s' % ext_mac_ip[i][1])
-                'ip route add default via 192.168.1.1')
+                'ip route add default via 192.168.2.0')
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
