@@ -124,31 +124,9 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
 
     r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
 
-    for i in range(len(int_mac_ip)):
-        # HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
-        HOSTS[i].cmd('ip route add default via 192.168.2.0')
-
     for host in BACKGROUND_HOSTS:
         print str(host)
         host.cmd('ip route add default via 192.168.2.0')
-
-    try:
-        host_num = 0
-
-        for mac, ip_set in ext_mac_ip_dict.iteritems():
-            ip_list = list(ip_set)
-            for ip in ip_list:
-                BACKGROUND_HOSTS[host_num].cmd(
-                    # 'ip route add default via %s' % ip)
-                    'ip route add default via 192.168.2.0')
-
-            host_num += 1
-
-    except AttributeError:
-        for i in range(len(ext_mac_ip)):
-            BACKGROUND_HOSTS[i].cmd(
-                # 'ip route add default via %s' % ext_mac_ip[i][1])
-                'ip route add default via 192.168.2.0')
 
     s1 = SWITCHES[0]
     s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
