@@ -124,8 +124,10 @@ def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
 
     r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
 
+    for host in HOSTS:
+        host.cmd('ip route add default via 192.168.2.0')
+
     for host in BACKGROUND_HOSTS:
-        print str(host)
         host.cmd('ip route add default via 192.168.2.0')
 
     s1 = SWITCHES[0]
