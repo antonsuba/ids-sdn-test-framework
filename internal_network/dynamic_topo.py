@@ -40,7 +40,7 @@ class DistributedTopo(object):
             router_ip = '%s/%s' % (default_route, '32')
 
             host = topo.addHost('h%i' % i, ip=host_ip,
-                                mac=mac, defaultRoute='via %s' % ip)
+                                mac=mac, defaultRoute='via %s' % default_route)
             switch = topo.addSwitch('s%s' % str(i))
 
             # print '%s, %s, %s, %s' % (str(switch), 'r0-eth%s' % str(i+1), router_ip, default_route)
