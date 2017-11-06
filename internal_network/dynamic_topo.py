@@ -11,7 +11,7 @@ class DistributedTopo(object):
             ip = mac_ip_list[i][1]
 
             SWITCHES.append(net.addSwitch('s'+str(i+1)))
-            HOSTS.append(net.addHost('h'+str(i), ip=ip, mac=mac))
+            HOSTS.append(net.addHost('h'+str(i), ip=ip, mac=mac, defaultRoute='192.168.2.0'))
 
             net.addLink(SWITCHES[0], SWITCHES[i+1], bw=10, delay='10ms')
             net.addLink(HOSTS[i], SWITCHES[i+1], bw=10, delay='10ms')
