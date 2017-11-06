@@ -8,7 +8,7 @@ class BackgroundTraffic(object):
             ip_list = list(ip_set)
 
             BACKGROUND_HOSTS.append(net.addHost('h' + str(host_num + offset - 1),
-                                                ip=ip_list[0] + '/1', mac=mac))
+                                                ip=ip_list[0], mac=mac))
             TEST_SWITCHES.append(net.addSwitch('s' + str(host_num + offset)))
 
             net.addLink(SWITCHES[0], TEST_SWITCHES[host_num], bw=10, delay='10ms')

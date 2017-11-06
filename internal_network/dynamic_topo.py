@@ -1,17 +1,30 @@
 #!/usr/bin/python
 
 class DistributedTopo(object):
+    "Internal network topology class"
 
-    def create_topo(self, mac_ip_list, net, SWITCHES, HOSTS):
+    def __init__(self):
+        self.subnet_mask = '24'
+
+    def create_topo(self, mac_ip_list, topo):
+        "Required method, called by main framework class. Generates network topology."
+
+        hosts = list()
+        switches = list()
+
         #create nodes
-        SWITCHES.append(net.addSwitch('s0'))
+        switches.append(topo.addSwitch('s0'))
 
         for i in range(0, len(mac_ip_list)):
             mac = mac_ip_list[i][0]
             ip = mac_ip_list[i][1]
+            default_route = (ip.rsplit('.', 1)[:-1])[0] + '.1'
 
-            SWITCHES.append(net.addSwitch('s'+str(i+1)))
-            HOSTS.append(net.addHost('h'+str(i), ip=ip, mac=mac, defaultRoute='192.168.2.0'))
+            switches.append(topo.addSwitch('s%i' % i+1))
+            hosts.append(topo.addHost('h%i' % i, ip='%s/%s' % (ip, self.subnet_mask),
+                                      mac=mac, defaultRoute='via %s' % default_route))
 
-            net.addLink(SWITCHES[0], SWITCHES[i+1], bw=10, delay='10ms')
-            net.addLink(HOSTS[i], SWITCHES[i+1], bw=10, delay='10ms')
+            topo.addLink(switches[0], switches[i+1], bw=10, delay='10ms')
+            topo.addLink(hosts[i], switches[i+1], bw=10, delay='10ms')
+
+        return hosts, switches
