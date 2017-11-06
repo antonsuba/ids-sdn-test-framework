@@ -7,9 +7,8 @@ import argparse
 import sys
 import inspect
 import pkgutil
-import string
-import csv
 import re
+import traceback
 from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
@@ -54,8 +53,6 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-net = Mininet(controller=RemoteController, link=TCLink)
-
 HOSTS = list()
 SWITCHES = list()
 ROUTERS = list()
@@ -68,26 +65,37 @@ TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
 
-class LinuxRouter(Node):
-    "A Node with IP forwarding enabled."
-
-    def config(self, **params):
-        super(LinuxRouter, self).config(**params)
-        # Enable forwarding on the router
-        print 'Router Config'
-        self.cmd('sysctl net.ipv4.ip_forward=1')
-
-    def terminate(self):
-        self.cmd('sysctl net.ipv4.ip_forward=0')
-        super(LinuxRouter, self).terminate()
-
-
 class IDSTestFramework(Topo):
     "IDS Testing Framework Main Class"
 
+
     def __init__(self):
+        print 'IDS Testing Started'
+
+        self.int_topo_class = None
+        self.ext_topo_class = None
+        
+        self.int_mac_ip = None
+        self.ext_mac_ip = None
+
         super(IDSTestFramework, self).__init__()
-        self.router_ip = '192.168.1.1/24'
+
+
+    def build(self, **_opts):
+        # router_ip = '192.168.1.1'
+
+        # Get IP and MAC address data
+        mac_ip_set = self.read_mac_ip_file(MAC_IP_FILE)
+        self.int_mac_ip, self.ext_mac_ip = self.split_mac_ip(mac_ip_set, '192.168')
+        ext_mac_ip_dict = self.aggregate_mac_ip(self.ext_mac_ip)
+
+        print 'Int net length: %i' % len(self.int_mac_ip)
+        print 'Ext net length: %i' % len(ext_mac_ip_dict)
+
+        #Create network topology
+        # self.create_router(int_mac_ip[0][1])
+        self.create_network(self.int_mac_ip)
+        # ids_test.create_background_network(ext_mac_ip_dict)
 
 
     # Generate internal network
@@ -97,10 +105,15 @@ class IDSTestFramework(Topo):
             module = importer.find_module(modname).load_module(modname)
             topo_name, topo_class = self.__load_class(module)
 
+            self.int_topo_class = topo_class
+
             try:
-                topo_class().create_topo(mac_ip_set, net, SWITCHES, HOSTS)
-            except TypeError:
-                print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
+                hosts, switches = topo_class().create_topo(mac_ip_set, self)
+                HOSTS.extend(hosts)
+                SWITCHES.extend(switches)
+            except TypeError as e:
+                traceback.print_exc()
+                print '%s must have create_topo(mac_ip_set, topo) method' % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(HOSTS)
@@ -117,8 +130,9 @@ class IDSTestFramework(Topo):
             topo_name, topo_class = self.__load_class(module)
 
             try:
-                topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
-                                        BACKGROUND_HOSTS, TEST_SWITCHES)
+                # topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
+                #                         BACKGROUND_HOSTS, TEST_SWITCHES)
+                print 'Background Hosts'
             except TypeError:
                 print '%s must have create_topo(Mininet, mac_ip_set, offset, switches, test_hosts, test_switches) method' % topo_name
 
@@ -127,20 +141,9 @@ class IDSTestFramework(Topo):
         print 'SWITCHES: %s\n' % str(TEST_SWITCHES)
 
 
-    def create_router(self):
-        router = self.addNode('r0', cls=LinuxRouter, ip=self.router_ip)
-        ROUTERS.append(router)
-
-
-    def configure_router(self, int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
-        subnets = set()
-        router = ROUTERS[0]
-
-        mac_ip = int_mac_ip + ext_mac_ip
-
-        for i in range(1, len(HOSTS)):
-            host_ip = int_mac_ip[i][1]
-            self.addLink(SWITCHES[i], router, intfName2='r0-eth%i' % i, params2={'ip':host_ip})
+    def configure_router(self, router):
+        print 'Configure Router 1'
+        self.int_topo_class().configure_router(router, self.int_mac_ip)
 
 
     def start_internal_servers(self, directory, port):
@@ -169,33 +172,33 @@ class IDSTestFramework(Topo):
                 print 'Error. %s must have run_test(targets) method' % (test_name)
 
 
-    def log_target_hosts(self):
-        targets_file = open(TARGET_HOSTS_FILE, 'w+')
-        targets_arr = list()
+    # def log_target_hosts(self):
+    #     targets_file = open(TARGET_HOSTS_FILE, 'w+')
+    #     targets_arr = list()
 
-        for i in range(0, len(HOSTS)):
-            host = net.get('h' + str(i))
-            ipaddr = host.cmd('hostname -I')
+    #     for i in range(0, len(HOSTS)):
+    #         host = net.get('h' + str(i))
+    #         ipaddr = host.cmd('hostname -I')
 
-            targets_arr.append(ipaddr.rstrip())
-            targets_file.write('%i_%s' % (i + 1, ipaddr))
+    #         targets_arr.append(ipaddr.rstrip())
+    #         targets_file.write('%i_%s' % (i + 1, ipaddr))
 
-        return targets_arr
+    #     return targets_arr
 
 
-    def log_attack_hosts(self):
-        attack_file = open(ATTACK_HOSTS_FILE, 'w+')
-        attack_hosts_arr = list()
+    # def log_attack_hosts(self):
+    #     attack_file = open(ATTACK_HOSTS_FILE, 'w+')
+    #     attack_hosts_arr = list()
 
-        offset = len(SWITCHES)
-        for i in range(offset, len(BACKGROUND_HOSTS) + offset - 1):
-            host = net.get('h' + str(i))
-            ipaddr = host.cmd('hostname -I')
+    #     offset = len(SWITCHES)
+    #     for i in range(offset, len(BACKGROUND_HOSTS) + offset - 1):
+    #         host = net.get('h' + str(i))
+    #         ipaddr = host.cmd('hostname -I')
 
-            attack_hosts_arr.append(ipaddr.rstrip())
-            attack_file.write('%s' % (ipaddr))
+    #         attack_hosts_arr.append(ipaddr.rstrip())
+    #         attack_file.write('%s' % (ipaddr))
 
-        return attack_hosts_arr
+    #     return attack_hosts_arr
 
 
     def generate_background_traffic(self, hosts, target_hosts, port, filename):
@@ -266,35 +269,21 @@ class IDSTestFramework(Topo):
 def main():
     setLogLevel('info')
 
-    # Create remote controller
-    c0 = net.addController()
-
+    #Instantiate IDS Test Framework
     ids_test = IDSTestFramework()
-
-    # Get IP and MAC address data
-    mac_ip_set = ids_test.read_mac_ip_file(MAC_IP_FILE)
-    int_mac_ip, ext_mac_ip = ids_test.split_mac_ip(mac_ip_set, '192.168')
-    ext_mac_ip_dict = ids_test.aggregate_mac_ip(ext_mac_ip)
-
-    print 'Int net length: %i' % len(int_mac_ip)
-    print 'Ext net length: %i' % len(ext_mac_ip_dict)
-
-    #Create network topology
-    ids_test.create_network(int_mac_ip)
-    ids_test.create_background_network(ext_mac_ip_dict)
-    ids_test.create_router()
+    net = Mininet(topo=ids_test, controller=RemoteController)
 
     net.start()
 
-    # Link subnets to router
-    ids_test.configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict)
+    router = net.get('r0')
+    ids_test.configure_router(router)
 
     # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
 
     # Execute framework commands
     # log_attack_hosts()
-    targets_arr = ids_test.log_target_hosts()
+    # targets_arr = ids_test.log_target_hosts()
     # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
