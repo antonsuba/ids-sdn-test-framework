@@ -24,12 +24,13 @@ class DistributedTopo(object):
         self.subnet_mask = '24'
         self.hosts = list()
         self.switches = list()
+        self.router = None
 
-    def create_topo(self, mac_ip_list, topo):
+    def create_topo(self, topo, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
 
         default_router_ip = '%s/%s' % (mac_ip_list[0][1], self.subnet_mask)
-        router = topo.addNode('r0', cls=LinuxRouter, ip=default_router_ip)
+        self.router = topo.addNode('r0', cls=LinuxRouter, ip=default_router_ip)
 
         for i in range(0, len(mac_ip_list)):
             mac = mac_ip_list[i][0]
@@ -45,7 +46,7 @@ class DistributedTopo(object):
 
             # print '%s, %s, %s, %s' % (str(switch), 'r0-eth%s' % str(i+1), router_ip, default_route)
 
-            topo.addLink(switch, router, intfName2='r0-eth%i' % i, params2={'ip':router_ip})
+            topo.addLink(switch, self.router, intfName2='r0-eth%i' % i, params2={'ip':router_ip})
             topo.addLink(host, switch)
 
             # router.cmd('ifconfig r0-eth%i %s netmask %s' % (i, ip, '255.255.255.0'))
@@ -53,7 +54,7 @@ class DistributedTopo(object):
             self.hosts.append(host)
             self.switches.append(switch)
 
-        return self.hosts, self.switches
+        return self.hosts, self.switches, self.router
 
 
     def configure_router(self, router, mac_ip_list):
