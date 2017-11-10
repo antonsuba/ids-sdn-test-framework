@@ -239,7 +239,7 @@ class IDSTestFramework(Topo):
         mac_ip_set = set()
 
         with open(filename, 'r') as f:
-            p = '\w+:\w+:\w+:\w+:\w+:\w+\s\d+\.\d+\.\d+\.\d+'
+            p = '\w+:\w+:\w+:\w+:\w+:\w+\s+\d+\.\d+\.\d+\.\d+'
             pairs = re.findall(p, f.read())
             for pair in pairs:
                 mac, ip = pair.split()
