@@ -67,13 +67,12 @@ ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 class IDSTestFramework(Topo):
     "IDS Testing Framework Main Class"
 
-
     def __init__(self):
         print 'IDS Testing Started'
 
         self.int_topo_class = None
         self.ext_topo_class = None
-        
+
         self.int_mac_ip = None
         self.ext_mac_ip = None
         self.ext_mac_ip_dict = None
@@ -87,23 +86,22 @@ class IDSTestFramework(Topo):
 
         super(IDSTestFramework, self).__init__()
 
-
     def build(self, **_opts):
         # router_ip = '192.168.1.1'
 
         # Get IP and MAC address data
         mac_ip_set = self.read_mac_ip_file(MAC_IP_FILE)
-        self.int_mac_ip, self.ext_mac_ip = self.split_mac_ip(mac_ip_set, '192.168')
+        self.int_mac_ip, self.ext_mac_ip = self.split_mac_ip(
+            mac_ip_set, '^192.168')
         self.ext_mac_ip_dict = self.aggregate_mac_ip(self.ext_mac_ip)
 
         print 'Int net length: %i' % len(self.int_mac_ip)
         print 'Ext net length: %i' % len(self.ext_mac_ip_dict)
 
-        #Create network topology
+        # Create network topology
         # self.create_router(int_mac_ip[0][1])
         self.create_internal_network(self.int_mac_ip)
         self.create_external_network(self.ext_mac_ip_dict)
-
 
     # Generate internal network
     def create_internal_network(self, mac_ip_set, package=internal_network):
@@ -115,7 +113,8 @@ class IDSTestFramework(Topo):
             self.int_topo_class = topo_class
 
             try:
-                self.int_hosts, self.int_switches, self.main_node = topo_class().create_topo(self, mac_ip_set)
+                self.int_hosts, self.int_switches, self.main_node = topo_class(
+                ).create_topo(self, mac_ip_set)
             except TypeError as e:
                 traceback.print_exc()
                 print '%s must have create_topo(mac_ip_set, topo) method' % topo_name
@@ -123,7 +122,6 @@ class IDSTestFramework(Topo):
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
         print 'SWITCHES: %s\n' % str(self.int_switches)
-
 
     # Generate test network
     def create_external_network(self, ext_mac_set, package=external_network):
@@ -137,8 +135,8 @@ class IDSTestFramework(Topo):
             self.ext_topo_class = topo_class
 
             try:
-                self.ext_hosts, self.ext_switches = topo_class().create_topo(self, ext_mac_set,
-                                                                             offset, self.main_node)
+                self.ext_hosts, self.ext_switches = topo_class().create_topo(
+                    self, ext_mac_set, offset, self.main_node)
                 print 'External Hosts'
             except TypeError:
                 print '%s must have create_topo(Mininet, mac_ip_set, offset, switches, test_hosts, test_switches) method' % topo_name
@@ -147,19 +145,18 @@ class IDSTestFramework(Topo):
         print 'HOSTS: %s' % str(self.ext_hosts)
         print 'SWITCHES: %s\n' % str(self.ext_switches)
 
-
     def generate_ip_aliases(self, hosts):
         print 'Generate Aliases'
         offset = len(self.int_switches)
-        self.ext_topo_class().generate_ip_aliases(hosts, self.ext_mac_ip_dict, offset)
-
+        self.ext_topo_class().generate_ip_aliases(hosts, self.ext_mac_ip_dict,
+                                                  offset)
 
     def configure_router(self, router):
         print 'Configuring Router'
-        offset = len(self.int_switches)        
+        offset = len(self.int_switches)
         self.int_topo_class().configure_router(router, self.int_mac_ip)
-        self.ext_topo_class().configure_router(router, self.ext_mac_ip_dict, offset)
-
+        self.ext_topo_class().configure_router(router, self.ext_mac_ip_dict,
+                                               offset)
 
     def start_internal_servers(self, directory, port):
         print '\nStarting internal network hosts servers:'
@@ -167,7 +164,6 @@ class IDSTestFramework(Topo):
             host.cmd('cd %s' % directory)
             host.cmd('python -m SimpleHTTPServer %s &' % str(port))
             print '%s server started' % str(host)
-
 
     # Run specified test (Defaults to: all tests)
     def exec_test_cases(self, test, targets, package=test_cases):
@@ -180,12 +176,12 @@ class IDSTestFramework(Topo):
 
             try:
                 print 'Executing %s' % test_name
-                self.generate_background_traffic(BACKGROUND_HOSTS, targets, 8000,
-                                                 'sample1.txt')
+                self.generate_background_traffic(BACKGROUND_HOSTS, targets,
+                                                 8000, 'sample1.txt')
                 # test_class().run_test(targets, BACKGROUND_HOSTS)
             except TypeError:
-                print 'Error. %s must have run_test(targets) method' % (test_name)
-
+                print 'Error. %s must have run_test(targets) method' % (
+                    test_name)
 
     # def log_target_hosts(self):
     #     targets_file = open(TARGET_HOSTS_FILE, 'w+')
@@ -199,7 +195,6 @@ class IDSTestFramework(Topo):
     #         targets_file.write('%i_%s' % (i + 1, ipaddr))
 
     #     return targets_arr
-
 
     # def log_attack_hosts(self):
     #     attack_file = open(ATTACK_HOSTS_FILE, 'w+')
@@ -215,19 +210,17 @@ class IDSTestFramework(Topo):
 
     #     return attack_hosts_arr
 
-
     def generate_background_traffic(self, hosts, target_hosts, port, filename):
         for i in range(0, len(target_hosts)):
-            ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i], port, filename)
+            ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i],
+                                                          port, filename)
             print 'Executing ab command: %s' % ab_cmd
             info(hosts[i].cmd(ab_cmd))
-
 
     # Load class given a module
     def __load_class(self, module):
         for name, obj in inspect.getmembers(module, inspect.isclass):
             return name, obj
-
 
     # Read file then append to list
     def read_data_file(self, filename):
@@ -239,7 +232,6 @@ class IDSTestFramework(Topo):
         f.close()
 
         return data_list
-
 
     # Generate set of MAC - IP pairs from file
     def read_mac_ip_file(self, filename):
@@ -255,20 +247,18 @@ class IDSTestFramework(Topo):
 
         return mac_ip_set
 
-
     # Split MAC - IP set
     def split_mac_ip(self, mac_ip_set, int_net_ip_pattern):
         int_mac_ip = list()
         ext_mac_ip = list()
 
         for pair in mac_ip_set:
-            if int_net_ip_pattern in pair[1]:
+            if bool(re.match(int_net_ip_pattern, pair[1])):
                 int_mac_ip.append(pair)
             else:
                 ext_mac_ip.append(pair)
 
         return int_mac_ip, ext_mac_ip
-
 
     # Generate dictionary with MAC as key and set of IP as value
     def aggregate_mac_ip(self, mac_ip_set):
