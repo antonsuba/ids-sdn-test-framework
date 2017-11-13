@@ -81,7 +81,7 @@ class ExternalTopo(object):
 
             for ip in ip_list:
                 ip_subnet = ip + '/32'
-                # print 'ip route add %s dev r0-eth%i' % (ip_subnet, host_num)
+                print 'ip route add %s dev r0-eth%i' % (ip_subnet, host_num)
                 info(router.cmd('ip route add %s dev r0-eth%i' % (ip_subnet, host_num)))
 
             host_num += 1

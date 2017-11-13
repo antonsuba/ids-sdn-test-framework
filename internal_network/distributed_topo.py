@@ -27,13 +27,13 @@ class DistributedTopo(object):
         self.router = None
         self.mac_ip_list = None
         self.ip_duplicates = dict()
+        self.ip_tracker = list()
 
     def create_topo(self, topo, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
 
         self.mac_ip_list = mac_ip_list
 
-        ip_tracker = list()
         subnet_count_tracker = dict()
 
         default_router_ip = '%s/%s' % (mac_ip_list[0][1], self.subnet_mask)
@@ -46,8 +46,8 @@ class DistributedTopo(object):
             ip_subnet = (ip.rsplit('.', 1)[:-1])[0]
 
             #Check if duplicate IP - for virtual mac interface generation
-            if ip in ip_tracker:
-                host_num = ip_tracker.index(ip)
+            if ip in self.ip_tracker:
+                host_num = self.ip_tracker.index(ip)
                 try:
                     self.ip_duplicates[host_num].append(mac_ip_pair)
                 except KeyError:
@@ -75,14 +75,13 @@ class DistributedTopo(object):
             topo.addLink(host, switch)
 
             subnet_count_tracker[ip_subnet] += 1
-            ip_tracker.append(ip)
+            self.ip_tracker.append(ip)
 
             self.hosts.append(host)
             self.switches.append(switch)
 
             mac_ip_counter += 1
 
-        print str(ip_tracker)
         return self.hosts, self.switches, self.router
 
 
@@ -102,15 +101,15 @@ class DistributedTopo(object):
                 host = hosts[host_num]
                 print 'ip link add link h%i-eth0 address %s h%i-eth0.%i type macvlan' % (host_num, mac, host_num, i+1)
                 info(host.cmd('ip link add link h%i-eth0 address %s h%i-eth0.%i type macvlan' % (host_num, mac, host_num, i+1)))
-                info(host.cmd('ifconfig h%i-eth0.%i %s netmask 255.255.255.128' % (host_num, i, ip)))
+                info(host.cmd('ifconfig h%i-eth0.%i %s netmask 255.255.255.0' % (host_num, i+1, ip)))
 
 
     def configure_router(self, router):
         "Set subnet to interface routing of internal hosts"
 
-        mac_ip_list = self.mac_ip_list
+        ip_list = self.ip_tracker
 
-        for i in range(0, len(mac_ip_list)):
-            ip = mac_ip_list[i][1] + '/32'
-            # print 'ip route add %s dev r0-eth%i' % (ip, i)
+        for i in range(0, len(ip_list)):
+            ip = ip_list[i] + '/32'
+            print 'ip route add %s dev r0-eth%i' % (ip, i)
             info(router.cmd('ip route add %s dev r0-eth%i' % (ip, i)))
