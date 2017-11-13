@@ -9,6 +9,8 @@ log = core.getLogger()
 opcode_map = {1:'REQUEST', 2:'REPLY', 3:'REV_REQUEST', 4:'REV_REPLY'}
 ipv4_protocols = {4:'IPv4', 1:'ICMP_PROTOCOL', 6:'TCP_PROTOCOL', 17:'UDP_PROTOCOL', 2:'IGMP_PROTOCOL'}
 
+global_mac_to_port = {}
+
 class Switch (object):
 
   def __init__ (self, connection):
@@ -64,12 +66,15 @@ class Switch (object):
 
     # Learn the port for the source MAC
     self.mac_to_port[packet.src] = packet_in.in_port
+    global_mac_to_port[packet.src] = packet_in.in_port
     src_port = packet_in.in_port
 
     log.info('Packet: %s' % packet)
     log.info('Packet src: %s' % packet.src)
     log.info('Packet src_port: %s' % src_port)
     log.info('Packet dst: %s' % packet.dst)
+    log.info('Switch mac_to_port: %s' % str(self.mac_to_port))
+    log.info('Switch PID: %s' % str(id(self.mac_to_port)))
     
     if packet.dst in self.mac_to_port:
         dst_port = self.mac_to_port[packet.dst]
@@ -123,8 +128,9 @@ class Switch (object):
     dpid = dpidToStr(self.connection.dpid)
     log.debug("DPID: %s" % (dpid))
 
-  def get_mac_to_port(self):
-    return self.get_mac_to_port
+  @staticmethod
+  def get_mac_to_port():
+    return global_mac_to_port
 
 def launch ():
   """

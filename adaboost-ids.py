@@ -5,8 +5,9 @@ from pox.lib.revent import EventHalt
 import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 from sklearn.externals import joblib
+from switch_pt import Switch
 
-CLASSIFIER_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/ml_ids/adaboost-ids.pkl'
+CLASSIFIER_FILE = 'ext/adaboost-ids.pkl'
 
 log = core.getLogger()
 checker = list()
@@ -21,7 +22,7 @@ PROTOCOLS = {
     pkt.ipv4.UDP_PROTOCOL: 5
 }
 
-TARGET_HOSTS_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/config/target_hosts.txt'
+TARGET_HOSTS_FILE = '/media/sf_ids-sdn/config/target_hosts.txt'
 
 
 class PacketChecker(object):
@@ -125,14 +126,16 @@ class PacketChecker(object):
                     return EventHalt
 
                 # Check if destination port is recorded as a table rule
-                log.info(core.switch_pt.mac_to_port)
+                mac_to_port = Switch.get_mac_to_port()
+
+                log.info(mac_to_port)
                 log.info('Packet dst: %s' % packet)
-                if packet.dst not in core.switch_pt.mac_to_port:
+                if packet.dst not in mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
                     return
 
                 # Check and update count of destination port
-                dst_port = core.switch_pt.mac_to_port[packet.dst]
+                dst_port = mac_to_port[packet.dst]
 
                 # dst_port = 1 # packet.dst
                 dst_ip = IPAddr(self.attached_host)
