@@ -7,6 +7,7 @@ class ExternalTopo(object):
         self.subnet_mask = '24'
         self.hosts = list()
         self.switches = list()
+        self.routers = dict()
 
         self.offset = None
         self.mac_ip_dict = None
@@ -70,18 +71,16 @@ class ExternalTopo(object):
             host_num += 1
 
 
-    def configure_router(self, router):
-        "Set subnet to interface routing of internal hosts"
+    def configure_routers(self, routers, int_routers_dict):
+        "Add routes to other routers"
 
-        host_num = self.offset
-        mac_ip_dict = self.mac_ip_dict
+        all_routers_dict = dict(self.routers, **int_routers_dict)
 
-        for mac, ip_set in mac_ip_dict.iteritems():
-            ip_list = list(ip_set)
+        for router in routers:
+            for network_addr, dest_router in all_routers_dict.iteritems():
+                dest_ip = dest_router.ip
 
-            for ip in ip_list:
-                ip_subnet = ip + '/32'
-                print 'ip route add %s dev r0-eth%i' % (ip_subnet, host_num)
-                info(router.cmd('ip route add %s dev r0-eth%i' % (ip_subnet, host_num)))
+                if dest_ip == router.IP():
+                    continue
 
-            host_num += 1
+                info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))

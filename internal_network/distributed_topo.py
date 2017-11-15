@@ -31,30 +31,26 @@ class DistributedTopo(object):
         self.ip_duplicates = dict()
         self.ip_tracker = list()
 
-    def create_topo(self, topo, mac_ip_list):
+    def create_topo(self, topo, main_switch, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
 
         self.mac_ip_list = mac_ip_list
-
-        # subnet_count_tracker = dict()
 
         mac_ip_counter = 0
         for mac_ip_pair in mac_ip_list:
             mac = mac_ip_pair[0]
             ip = mac_ip_pair[1]
+
+            # Skip broadcast addresses
+            if ip[-3:] == '255':
+                continue
+
             network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 
-            # Subnet instance counter - guarantees unique IP interface for routing
-            # if ip_subnet not in subnet_count_tracker:
-            #     subnet_count_tracker[ip_subnet] = 1
-
-            # ip_count = subnet_count_tracker[ip_subnet]
-
             # Create and link host and switch
-            router = self.__get_router(topo, network_addr)
-            router_ip_subnet = '%s/%s' % (router.ip, self.subnet_mask)
+            router = self.__get_router(topo, main_switch, network_addr)
 
-            host_ip = '%s/%s' % (ip, self.subnet_mask)            
+            host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost('h%i' % mac_ip_counter, ip=host_ip,
                                 mac=mac, defaultRoute='via %s' % router.ip)
             switch = topo.addSwitch('s%s' % str(mac_ip_counter))
@@ -62,7 +58,6 @@ class DistributedTopo(object):
             topo.addLink(host, switch)
             topo.addLink(switch, self.switches[router.name])
 
-            # subnet_count_tracker[ip_subnet] += 1
             self.ip_tracker.append(ip)
 
             self.hosts.append(host)
@@ -73,22 +68,27 @@ class DistributedTopo(object):
         return self.hosts, self.switches, self.routers
 
 
-    def __get_router(self, topo, network_addr):
+    def __get_router(self, topo, main_switch, network_addr):
         counter = len(self.routers)
         try:
             router = self.routers[network_addr]
         except KeyError:
+            link_subnet = '192.168.20.'
+            link_ip = link_subnet + str(counter + 1)
+
             router_ip = network_addr[:-5] + '.1'
             router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
-                                       ip=router_ip)
+                                       ip=router_ip + '/24')
 
-            Router = namedtuple('Router', 'name, ip')
-            router = Router(name=router_name, ip=router_ip)
+            Router = namedtuple('Router', 'name, ip, link_ip')
+            router = Router(name=router_name, ip=router_ip, link_ip=link_ip)
             self.routers[network_addr] = router
 
-            switch = topo.addSwitch('ms%i' % counter)
-            topo.addLink(router_name, switch)
+            switch = topo.addSwitch('ss%i' % counter)
             self.switches[router_name] = switch
+
+            topo.addLink(router_name, switch)
+            topo.addLink(router_name, main_switch, params1={'ip': link_ip  + '/24'})
 
         return router
 
@@ -100,9 +100,10 @@ class DistributedTopo(object):
 
         for router in routers:
             for network_addr, dest_router in all_routers_dict.iteritems():
-                dest_ip = dest_router.ip
-
-                if dest_ip == router.IP():
+                if dest_router.ip == router.IP():
                     continue
 
+                dest_ip = dest_router.link_ip
+
+                print 'ip route add %s via %s' % (network_addr, dest_ip)
                 info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))
