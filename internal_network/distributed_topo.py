@@ -2,6 +2,7 @@
 
 from mininet.node import Node
 from mininet.log import info
+from collections import namedtuple
 
 class LinuxRouter(Node):
     "A Node with IP forwarding enabled."
@@ -23,8 +24,9 @@ class DistributedTopo(object):
     def __init__(self):
         self.subnet_mask = '24'
         self.hosts = list()
-        self.switches = list()
-        self.router = None
+        self.switches = dict()
+        self.routers = dict()
+
         self.mac_ip_list = None
         self.ip_duplicates = dict()
         self.ip_tracker = list()
@@ -34,82 +36,73 @@ class DistributedTopo(object):
 
         self.mac_ip_list = mac_ip_list
 
-        subnet_count_tracker = dict()
-
-        default_router_ip = '%s/%s' % (mac_ip_list[0][1], self.subnet_mask)
-        self.router = topo.addNode('r0', cls=LinuxRouter, ip=default_router_ip)
+        # subnet_count_tracker = dict()
 
         mac_ip_counter = 0
         for mac_ip_pair in mac_ip_list:
             mac = mac_ip_pair[0]
             ip = mac_ip_pair[1]
-            ip_subnet = (ip.rsplit('.', 1)[:-1])[0]
+            network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 
-            #Check if duplicate IP - for virtual mac interface generation
-            if ip in self.ip_tracker:
-                host_num = self.ip_tracker.index(ip)
-                try:
-                    self.ip_duplicates[host_num].append(mac_ip_pair)
-                except KeyError:
-                    self.ip_duplicates[host_num] = [mac_ip_pair]
-                continue
+            # Subnet instance counter - guarantees unique IP interface for routing
+            # if ip_subnet not in subnet_count_tracker:
+            #     subnet_count_tracker[ip_subnet] = 1
 
-            #Subnet instance counter - guarantees unique IP interface for routing
-            if ip_subnet not in subnet_count_tracker:
-                subnet_count_tracker[ip_subnet] = 1
+            # ip_count = subnet_count_tracker[ip_subnet]
 
-            ip_count = subnet_count_tracker[ip_subnet]
+            # Create and link host and switch
+            router = self.__get_router(topo, network_addr)
+            router_ip_subnet = '%s/%s' % (router.ip, self.subnet_mask)
 
-            #Create and link host and switch
-            host_ip = '%s/%s' % (ip, self.subnet_mask)
-            default_route = ip_subnet + '.' + str(ip_count)
-            router_ip = '%s/%s' % (default_route, '32')
-
+            host_ip = '%s/%s' % (ip, self.subnet_mask)            
             host = topo.addHost('h%i' % mac_ip_counter, ip=host_ip,
-                                mac=mac, defaultRoute='via %s' % default_route)
+                                mac=mac, defaultRoute='via %s' % router.ip)
             switch = topo.addSwitch('s%s' % str(mac_ip_counter))
 
-            # print '%s, %s, %s, %s' % (str(switch), 'r0-eth%s' % str(i+1), router_ip, default_route)
-
-            topo.addLink(switch, self.router, intfName2='r0-eth%i' % mac_ip_counter, params2={'ip':router_ip})
             topo.addLink(host, switch)
+            topo.addLink(switch, self.switches[router.name])
 
-            subnet_count_tracker[ip_subnet] += 1
+            # subnet_count_tracker[ip_subnet] += 1
             self.ip_tracker.append(ip)
 
             self.hosts.append(host)
-            self.switches.append(switch)
+            self.switches[host] = switch
 
             mac_ip_counter += 1
 
-        return self.hosts, self.switches, self.router
+        return self.hosts, self.switches, self.routers
 
 
-    def generate_virtual_mac(self, hosts):
-        "Generate virtual macs for IPs with multiple mac addresses"
+    def __get_router(self, topo, network_addr):
+        counter = len(self.routers)
+        try:
+            router = self.routers[network_addr]
+        except KeyError:
+            router_ip = network_addr[:-5] + '.1'
+            router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
+                                       ip=router_ip)
 
-        ip_duplicates = self.ip_duplicates
+            Router = namedtuple('Router', 'name, ip')
+            router = Router(name=router_name, ip=router_ip)
+            self.routers[network_addr] = router
 
-        print str(ip_duplicates)
+            switch = topo.addSwitch('ms%i' % counter)
+            topo.addLink(router_name, switch)
+            self.switches[router_name] = switch
 
-        for host_num, mac_ip_list in ip_duplicates.iteritems():
-
-            for i in range(0, len(mac_ip_list)):
-                mac = mac_ip_list[i][0]
-                ip = mac_ip_list[i][1]
-
-                host = hosts[host_num]
-                print 'ip link add link h%i-eth0 address %s h%i-eth0.%i type macvlan' % (host_num, mac, host_num, i+1)
-                info(host.cmd('ip link add link h%i-eth0 address %s h%i-eth0.%i type macvlan' % (host_num, mac, host_num, i+1)))
-                info(host.cmd('ifconfig h%i-eth0.%i %s netmask 255.255.255.0' % (host_num, i+1, ip)))
+        return router
 
 
-    def configure_router(self, router):
-        "Set subnet to interface routing of internal hosts"
+    def configure_routers(self, routers, ext_routers_dict):
+        "Add routes to other routers"
 
-        ip_list = self.ip_tracker
+        all_routers_dict = dict(self.routers, **ext_routers_dict)
 
-        for i in range(0, len(ip_list)):
-            ip = ip_list[i] + '/32'
-            print 'ip route add %s dev r0-eth%i' % (ip, i)
-            info(router.cmd('ip route add %s dev r0-eth%i' % (ip, i)))
+        for router in routers:
+            for network_addr, dest_router in all_routers_dict.iteritems():
+                dest_ip = dest_router.ip
+
+                if dest_ip == router.IP():
+                    continue
+
+                info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))

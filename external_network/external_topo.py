@@ -38,7 +38,7 @@ class ExternalTopo(object):
             switch = topo.addSwitch('s' + str(host_num + offset))
 
             topo.addLink(switch, router, intfName2='r0-eth%i' % (host_num + offset),
-                         params2={'ip':router_ip})
+                         params2={'ip': router_ip})
             topo.addLink(host, switch)
 
             ip_count_tracker[ip] += 1
@@ -85,4 +85,3 @@ class ExternalTopo(object):
                 info(router.cmd('ip route add %s dev r0-eth%i' % (ip_subnet, host_num)))
 
             host_num += 1
-
