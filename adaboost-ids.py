@@ -63,7 +63,6 @@ class PacketChecker(object):
                 self.set_checker(True)
                 self.attached_host = ip
                 log.debug('IDS Switch %i activated' % num)
-                log.debug('ip addr %s' % ip)
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
