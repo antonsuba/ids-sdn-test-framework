@@ -66,16 +66,6 @@ def convert_class(x):
     return int(x != 'Normal')
 
 
-def convert_direction(x):
-    return int(x != 'L2R')
-
-
-def calculate_duration(start, stop):
-    dt = datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S') - datetime.strptime(
-        start, '%Y-%m-%dT%H:%M:%S')
-    return dt.total_seconds()
-
-
 # Load training data
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
