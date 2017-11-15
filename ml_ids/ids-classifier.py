@@ -50,7 +50,8 @@ def load_data_set(data_path):
                 del item['totalDestinationPackets']
                 del item['totalSourcePackets']
                 del item['direction']
-                del item['duration']
+                del item['startDateTime']
+                del item['stopDateTime']
 
             dataset += temp
         finally:
