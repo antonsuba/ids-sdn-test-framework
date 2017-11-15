@@ -51,15 +51,19 @@ class PacketChecker(object):
         self.activate_ids()
 
     def activate_ids(self, filepath=TARGET_HOSTS_FILE):
-        log.info('Acitvating IDS switches')
+        log.info('Activating IDS switches')
 
         f = open(filepath, 'r')
         for line in f:
-            num = int(line.split("_")[0])
+            host = line.split("_")
+            num = int(host[0])
+            ip = host[1].split()[0]
 
             if num == self.number:
                 self.set_checker(True)
+                self.attached_host = ip
                 log.debug('IDS Switch %i activated' % num)
+                log.debug('ip addr %s' % ip)
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
