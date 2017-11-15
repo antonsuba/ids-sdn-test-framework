@@ -37,7 +37,9 @@ class PacketChecker(object):
         self.black_list = list()
         self.timestamp_log = list()
         self.source_ip_count_list = {}
+        self.source_port_count_list = {}
         self.destination_ip_count_list = {}
+        self.destination_port_count_list = {}
         self.count = 0
 
         self.clf = joblib.load(CLASSIFIER_FILE)
@@ -70,9 +72,9 @@ class PacketChecker(object):
                                   packet_in):
         entry = list()
 
-        entry.append(dst_port)
+        entry.append(self.destination_port_count_list[dst_port])
         entry.append(self.destination_ip_count_list[dst_ip])
-        entry.append(packet_in.in_port)
+        entry.append(self.source_port_count_list[packet_in.in_port])
         entry.append(self.source_ip_count_list[ip.srcip])
 
         protocol_one_hot = [0, 0, 0, 0, 0, 0]
@@ -144,11 +146,21 @@ class PacketChecker(object):
                 else:
                     self.destination_ip_count_list[dst_ip] = 1
 
+                if dst_port in self.destination_port_count_list:
+                    self.destination_port_count_list[dst_port] += 1
+                else:
+                    self.destination_port_count_list[dst_port] = 1
+
                 # Check and update count of source IP
                 if ip.srcip in self.source_ip_count_list:
                     self.source_ip_count_list[ip.srcip] += 1
                 else:
                     self.source_ip_count_list[ip.srcip] = 1
+
+                if packet_in.in_port in self.source_port_count_list:
+                    self.source_port_count_list[packet_in.in_port] += 1
+                else:
+                    self.source_port_count_list[packet_in.in_port] = 1
 
                 # Generate array for prediction then classify
                 entry = self.generate_prediction_entry(
