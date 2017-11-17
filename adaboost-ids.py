@@ -31,6 +31,7 @@ class PacketChecker(object):
         connection.addListeners(self)
 
         self.number = switch_number
+        print self.number
         self.attached_host = '10.0.0.' + str(self.number)
         self.enable_checker = False
         self.srcip_list = {}
@@ -51,7 +52,7 @@ class PacketChecker(object):
         self.activate_ids()
 
     def activate_ids(self, filepath=TARGET_HOSTS_FILE):
-        log.info('Activating IDS switches')
+        # log.info('Activating IDS switches')
 
         f = open(filepath, 'r')
         for line in f:
@@ -62,7 +63,7 @@ class PacketChecker(object):
             if num == self.number:
                 self.set_checker(True)
                 self.attached_host = ip
-                log.debug('IDS Switch %i activated' % num)
+                log.debug('IDS Switch %i activated with IP %s' % (num, ip))
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
@@ -111,7 +112,7 @@ class PacketChecker(object):
 
             ip = packet.find('ipv4')
             if ip is None:
-                log.info("Switch# " + str(self.number) + " This isn't IP!")
+                log.info("Switch# " + str(self.number) + " This isn't IP!\n")
             else:
 
                 log.info("Switch#" + str(self.number) + " Source IP: " +
@@ -120,6 +121,7 @@ class PacketChecker(object):
                 # Do nothing if packet came from host
                 log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
                 if self.attached_host == ip.srcip:
+                    log.info('Packet from attached host\n')
                     return
 
                 # Check if IP is already blocked
@@ -131,12 +133,14 @@ class PacketChecker(object):
                     return EventHalt
 
                 # Check if destination port is recorded as a table rule
-                mac_to_port = Switch.get_mac_to_port()
+                mac_to_port = core.switch_pt.get_mac_to_port(self.number)
+                # log.info('Adaboost PID: %s' % str(id(mac_to_port)))
 
                 log.info(mac_to_port)
                 log.info('Packet dst: %s' % packet)
                 if packet.dst not in mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
+                    log.info('\n')
                     return
 
                 # Check and update count of destination port
@@ -183,6 +187,8 @@ class PacketChecker(object):
 
                     # Log IP of anomalous host
                     core.IDSMetricLogger.log_blocked_host(ip.srcip)
+
+                log.info('\n')
 
 
 # Start Component

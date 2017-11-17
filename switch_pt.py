@@ -9,6 +9,7 @@ log = core.getLogger()
 opcode_map = {1:'REQUEST', 2:'REPLY', 3:'REV_REQUEST', 4:'REV_REPLY'}
 ipv4_protocols = {4:'IPv4', 1:'ICMP_PROTOCOL', 6:'TCP_PROTOCOL', 17:'UDP_PROTOCOL', 2:'IGMP_PROTOCOL'}
 
+switch_num = -1
 global_mac_to_port = {}
 
 class Switch (object):
@@ -20,6 +21,8 @@ class Switch (object):
 
     # This binds our PacketIn event listener
     connection.addListeners(self)
+
+    self.number = switch_num
 
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
@@ -66,15 +69,22 @@ class Switch (object):
 
     # Learn the port for the source MAC
     self.mac_to_port[packet.src] = packet_in.in_port
-    global_mac_to_port[packet.src] = packet_in.in_port
+    try:
+      switch_mac_port = global_mac_to_port[self.number]
+      switch_mac_port[packet.src] = packet_in.in_port
+    except KeyError:
+      global_mac_to_port[self.number] = {packet.src : packet_in.in_port}
+
     src_port = packet_in.in_port
 
+    log.info('Switch Num: %i' % self.number)
     log.info('Packet: %s' % packet)
+    # log.info('Packet In: %s' % packet_in)
     log.info('Packet src: %s' % packet.src)
     log.info('Packet src_port: %s' % src_port)
     log.info('Packet dst: %s' % packet.dst)
     log.info('Switch mac_to_port: %s' % str(self.mac_to_port))
-    log.info('Switch PID: %s' % str(id(self.mac_to_port)))
+    # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
     
     if packet.dst in self.mac_to_port:
         dst_port = self.mac_to_port[packet.dst]
@@ -105,6 +115,9 @@ class Switch (object):
 
     packet_in = event.ofp # The actual ofp_packet_in message.
 
+    ip = packet.find('ipv4')
+    log.info(ip)
+
     self.switchImplementation(packet, packet_in)
 
   #Used to construct and send an IP packet
@@ -129,14 +142,17 @@ class Switch (object):
     log.debug("DPID: %s" % (dpid))
 
   @staticmethod
-  def get_mac_to_port():
-    return global_mac_to_port
+  def get_mac_to_port(ids_num):
+    # print str(global_mac_to_port)
+    return global_mac_to_port[ids_num]
 
 def launch ():
   """
   Starts the component
   """
   def start_switch (event):
+    global switch_num
+    switch_num += 1
     log.debug("Controlling %s" % (event.connection,))
     switch = Switch(event.connection)
     core.Interactive.variables['switch'] = switch
