@@ -26,10 +26,7 @@ class DistributedTopo(object):
         self.hosts = list()
         self.switches = dict()
         self.routers = dict()
-
         self.mac_ip_list = None
-        self.ip_duplicates = dict()
-        self.ip_tracker = list()
 
     def create_topo(self, topo, main_switch, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
@@ -58,8 +55,6 @@ class DistributedTopo(object):
             topo.addLink(host, switch)
             topo.addLink(switch, self.switches[router.name])
 
-            self.ip_tracker.append(ip)
-
             self.hosts.append(host)
             self.switches[host] = switch
 
@@ -80,8 +75,8 @@ class DistributedTopo(object):
             router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
                                        ip=router_ip + '/24')
 
-            Router = namedtuple('Router', 'name, ip, link_ip')
-            router = Router(name=router_name, ip=router_ip, link_ip=link_ip)
+            Router = namedtuple('Router', 'name, ip, link_ip, aliases')
+            router = Router(name=router_name, ip=router_ip, link_ip=link_ip, aliases=())
             self.routers[network_addr] = router
 
             switch = topo.addSwitch('ss%i' % counter)
@@ -96,14 +91,19 @@ class DistributedTopo(object):
     def configure_routers(self, routers, ext_routers_dict):
         "Add routes to other routers"
 
-        all_routers_dict = dict(self.routers, **ext_routers_dict)
+        # all_routers_dict = dict(self.routers, **ext_routers_dict)
+
+        print str(ext_routers_dict)
+        ext_router = ext_routers_dict.itervalues().next()
 
         for router in routers:
-            for network_addr, dest_router in all_routers_dict.iteritems():
+            info(router.cmd('ip route add default via %s' % ext_router.link_ip))
+
+            for network_addr, dest_router in self.routers.iteritems():
                 if dest_router.ip == router.IP():
                     continue
 
                 dest_ip = dest_router.link_ip
 
-                print 'ip route add %s via %s' % (network_addr, dest_ip)
+                # print 'ip route add %s via %s' % (network_addr, dest_ip)
                 info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))
