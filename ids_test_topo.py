@@ -206,18 +206,18 @@ class IDSTestFramework(Topo):
                 print 'Error. %s must have run_test(targets) method' % (
                     test_name)
 
-    # def log_target_hosts(self):
-    #     targets_file = open(TARGET_HOSTS_FILE, 'w+')
-    #     targets_arr = list()
+    def log_target_hosts(self, net):
+        targets_file = open(TARGET_HOSTS_FILE, 'w+')
+        targets_arr = list()
 
-    #     for i in range(0, len(HOSTS)):
-    #         host = net.get('h' + str(i))
-    #         ipaddr = host.cmd('hostname -I')
+        for i in range(len(self.int_hosts)):
+            host = net.get('h' + str(i))
+            ipaddr = host.cmd('hostname -I')
 
-    #         targets_arr.append(ipaddr.rstrip())
-    #         targets_file.write('%i_%s' % (i + 1, ipaddr))
+            targets_arr.append(ipaddr.rstrip())
+            targets_file.write('%i_%s' % (i, ipaddr))
 
-    #     return targets_arr
+        return targets_arr
 
     # def log_attack_hosts(self):
     #     attack_file = open(ATTACK_HOSTS_FILE, 'w+')
@@ -328,7 +328,7 @@ def main():
 
     # Execute framework commands
     # log_attack_hosts()
-    # targets_arr = ids_test.log_target_hosts()
+    targets_arr = ids_test.log_target_hosts(net)
     # exec_test_cases(args.test, targets_arr)
 
     CLI(net)

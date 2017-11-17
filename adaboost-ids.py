@@ -37,7 +37,9 @@ class PacketChecker(object):
         self.black_list = list()
         self.timestamp_log = list()
         self.source_ip_count_list = {}
+        self.source_port_count_list = {}
         self.destination_ip_count_list = {}
+        self.destination_port_count_list = {}
         self.count = 0
 
         self.clf = joblib.load(CLASSIFIER_FILE)
@@ -49,14 +51,17 @@ class PacketChecker(object):
         self.activate_ids()
 
     def activate_ids(self, filepath=TARGET_HOSTS_FILE):
-        log.info('Acitvating IDS switches')
+        log.info('Activating IDS switches')
 
         f = open(filepath, 'r')
         for line in f:
-            num = int(line.split("_")[0])
+            host = line.split("_")
+            num = int(host[0])
+            ip = host[1].split()[0]
 
             if num == self.number:
                 self.set_checker(True)
+                self.attached_host = ip
                 log.debug('IDS Switch %i activated' % num)
 
     def set_checker(self, enable):
@@ -70,9 +75,9 @@ class PacketChecker(object):
                                   packet_in):
         entry = list()
 
-        entry.append(dst_port)
+        entry.append(self.destination_port_count_list[dst_port])
         entry.append(self.destination_ip_count_list[dst_ip])
-        entry.append(packet_in.in_port)
+        entry.append(self.source_port_count_list[packet_in.in_port])
         entry.append(self.source_ip_count_list[ip.srcip])
 
         protocol_one_hot = [0, 0, 0, 0, 0, 0]
@@ -144,11 +149,21 @@ class PacketChecker(object):
                 else:
                     self.destination_ip_count_list[dst_ip] = 1
 
+                if dst_port in self.destination_port_count_list:
+                    self.destination_port_count_list[dst_port] += 1
+                else:
+                    self.destination_port_count_list[dst_port] = 1
+
                 # Check and update count of source IP
                 if ip.srcip in self.source_ip_count_list:
                     self.source_ip_count_list[ip.srcip] += 1
                 else:
                     self.source_ip_count_list[ip.srcip] = 1
+
+                if packet_in.in_port in self.source_port_count_list:
+                    self.source_port_count_list[packet_in.in_port] += 1
+                else:
+                    self.source_port_count_list[packet_in.in_port] = 1
 
                 # Generate array for prediction then classify
                 entry = self.generate_prediction_entry(
