@@ -124,6 +124,10 @@ class PacketChecker(object):
                     log.info('Packet from attached host\n')
                     return
 
+                if self.attached_host != ip.dstip:
+                    log.info('Packet not for this host\n')
+                    return
+
                 # Check if IP is already blocked
                 if str(ip.srcip) in self.black_list:
                     log.info("%s BLOCKED!" % str(ip.srcip))
@@ -133,7 +137,7 @@ class PacketChecker(object):
                     return EventHalt
 
                 # Check if destination port is recorded as a table rule
-                mac_to_port = core.switch_pt.get_mac_to_port(self.number)
+                mac_to_port = Switch.get_mac_to_port(self.number)
                 # log.info('Adaboost PID: %s' % str(id(mac_to_port)))
 
                 log.info(mac_to_port)
@@ -141,54 +145,54 @@ class PacketChecker(object):
                 if packet.dst not in mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
                     log.info('\n')
-                    return
-
-                # Check and update count of destination port
-                dst_port = mac_to_port[packet.dst]
-
-                # dst_port = 1 # packet.dst
-                dst_ip = IPAddr(self.attached_host)
-                if dst_ip in self.destination_ip_count_list:
-                    self.destination_ip_count_list[dst_ip] += 1
+                    # return
                 else:
-                    self.destination_ip_count_list[dst_ip] = 1
+                    # Check and update count of destination port
+                    dst_port = mac_to_port[packet.dst]
 
-                if dst_port in self.destination_port_count_list:
-                    self.destination_port_count_list[dst_port] += 1
-                else:
-                    self.destination_port_count_list[dst_port] = 1
+                    # dst_port = 1 # packet.dst
+                    dst_ip = IPAddr(self.attached_host)
+                    if dst_ip in self.destination_ip_count_list:
+                        self.destination_ip_count_list[dst_ip] += 1
+                    else:
+                        self.destination_ip_count_list[dst_ip] = 1
 
-                # Check and update count of source IP
-                if ip.srcip in self.source_ip_count_list:
-                    self.source_ip_count_list[ip.srcip] += 1
-                else:
-                    self.source_ip_count_list[ip.srcip] = 1
+                    if dst_port in self.destination_port_count_list:
+                        self.destination_port_count_list[dst_port] += 1
+                    else:
+                        self.destination_port_count_list[dst_port] = 1
 
-                if packet_in.in_port in self.source_port_count_list:
-                    self.source_port_count_list[packet_in.in_port] += 1
-                else:
-                    self.source_port_count_list[packet_in.in_port] = 1
+                    # Check and update count of source IP
+                    if ip.srcip in self.source_ip_count_list:
+                        self.source_ip_count_list[ip.srcip] += 1
+                    else:
+                        self.source_ip_count_list[ip.srcip] = 1
 
-                # Generate array for prediction then classify
-                entry = self.generate_prediction_entry(
-                    ip, dst_ip, dst_port, packet, packet_in)
-                pred = self.clf.predict(entry)
+                    if packet_in.in_port in self.source_port_count_list:
+                        self.source_port_count_list[packet_in.in_port] += 1
+                    else:
+                        self.source_port_count_list[packet_in.in_port] = 1
 
-                log.debug('%s - classification: %i' % (str(ip.srcip), pred))
-                # pred = False
+                    # Generate array for prediction then classify
+                    entry = self.generate_prediction_entry(
+                        ip, dst_ip, dst_port, packet, packet_in)
+                    pred = self.clf.predict(entry)
 
-                if pred:
-                    log.info("Added to blacklist: %s" % str(ip.srcip))
-                    self.black_list.append(str(ip.srcip))
-                    global_black_list.append(str(ip.srcip))
+                    log.debug('%s - classification: %i' % (str(ip.srcip), pred))
+                    # pred = False
 
-                    # Create openflow message to set block rule
-                    self.set_block_rule(ip)
+                    if pred:
+                        log.info("Added to blacklist: %s" % str(ip.srcip))
+                        self.black_list.append(str(ip.srcip))
+                        global_black_list.append(str(ip.srcip))
 
-                    # Log IP of anomalous host
-                    core.IDSMetricLogger.log_blocked_host(ip.srcip)
+                        # Create openflow message to set block rule
+                        self.set_block_rule(ip)
 
-                log.info('\n')
+                        # Log IP of anomalous host
+                        core.IDSMetricLogger.log_blocked_host(ip.srcip)
+
+                    log.info('\n')
 
 
 # Start Component

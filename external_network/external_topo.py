@@ -40,12 +40,12 @@ class ExternalTopo(object):
 
         for mac, ip_set in mac_ip_dict.iteritems():
             ip_list = list(ip_set)
-            ip = ip_list[0]
+            ip = '192.168.19.' + str(mac_ip_counter + 1)
 
-            if not self.routers:
-                network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
+            # if not self.routers:
+            #     network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 
-            aliases = ip_list[1:]
+            aliases = ip_list
             alias_set = set((alias.rsplit('.', 1)[:-1])[0] + '.' + str(int(alias.rsplit('.', 1)[-1]) + 1)
                             for alias in aliases)
 
@@ -65,7 +65,19 @@ class ExternalTopo(object):
 
             mac_ip_counter += 1
 
+        self.__create_tcpreplay_host(topo, mac_ip_counter + offset)
+
         return self.hosts, self.switches, self.routers
+
+
+    def __create_tcpreplay_host(self, topo, switch_num):
+        replay_host = topo.addHost('rh0', ip='192.168.19.%i' % len(self.hosts),
+                                   defaultRoute='via 192.168.19.253')
+        switch = topo.addSwitch('s%i' % switch_num)
+        router = self.routers.itervalues().next()
+
+        topo.addLink(replay_host, switch)
+        topo.addLink(switch, router.name)
 
 
     def __get_router(self, topo, main_switch, network_addr, aliases, offset):
@@ -77,7 +89,8 @@ class ExternalTopo(object):
             link_subnet = '192.168.20.'
             link_ip = link_subnet + str(counter + 1)
 
-            router_ip = network_addr[:-5] + '.1'
+            # router_ip = network_addr[:-5] + '.1'
+            router_ip = '192.168.19.253'
             router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
                                        ip=router_ip + '/24')
 

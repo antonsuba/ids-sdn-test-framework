@@ -51,23 +51,27 @@ class Switch (object):
     Implement switch-like behavior.
     """
 
+    log.info('Switch Num: %i' % self.number)
+    log.info('Packet: %s' % packet)
+
     #Parse packet info to gain an idea of what is happening
     #if controller receives packet
     if packet.type == pkt.ethernet.IP_TYPE:
       ip_packet = packet.payload
-      # log.info("IP Packet detected")
-      # log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
-      # log.info("Source IP: %s" % (ip_packet.srcip))
-      # log.info("Destination IP: %s" % (ip_packet.dstip))
+      log.info("IP Packet detected")
+      log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
+      log.info("Source IP: %s" % (ip_packet.srcip))
+      log.info("Destination IP: %s" % (ip_packet.dstip))
 
     if packet.type == pkt.ethernet.ARP_TYPE:
       arp_packet = packet.payload
-      # log.info("ARP Packet detected")
-      # log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
-      # log.info("Source MAC: %s" % (arp_packet.hwsrc))
-      # log.info("Destination MAC: %s" % (arp_packet.hwdst))
+      log.info("ARP Packet detected")
+      log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
+      log.info("Source MAC: %s" % (arp_packet.hwsrc))
+      log.info("Destination MAC: %s" % (arp_packet.hwdst))
 
     # Learn the port for the source MAC
+    log.info('Packet src: %s' % packet.src)
     self.mac_to_port[packet.src] = packet_in.in_port
     try:
       switch_mac_port = global_mac_to_port[self.number]
@@ -77,13 +81,12 @@ class Switch (object):
 
     src_port = packet_in.in_port
 
-    log.info('Switch Num: %i' % self.number)
-    log.info('Packet: %s' % packet)
+    
     # log.info('Packet In: %s' % packet_in)
-    log.info('Packet src: %s' % packet.src)
-    log.info('Packet src_port: %s' % src_port)
-    log.info('Packet dst: %s' % packet.dst)
-    log.info('Switch mac_to_port: %s' % str(self.mac_to_port))
+    # log.info('Packet src: %s' % packet.src)
+    # log.info('Packet src_port: %s' % src_port)
+    # log.info('Packet dst: %s' % packet.dst)
+    # log.info('Switch mac_to_port: %s' % str(global_mac_to_port))
     # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
     
     if packet.dst in self.mac_to_port:
@@ -101,6 +104,7 @@ class Switch (object):
     else:
       # Flood the packet out everything but the input port
       # This part looks familiar, right?
+      log.info('Resend Packet')
       self.resend_packet(packet_in, of.OFPP_ALL)
 
   def _handle_PacketIn (self, event):
@@ -144,7 +148,12 @@ class Switch (object):
   @staticmethod
   def get_mac_to_port(ids_num):
     # print str(global_mac_to_port)
-    return global_mac_to_port[ids_num]
+    mac_to_port = {}
+    try:
+      mac_to_port = global_mac_to_port[ids_num]
+    except KeyError:
+      log.info('Switch#%i not in global_mac_to_port' % ids_num)
+    return mac_to_port
 
 def launch ():
   """
@@ -157,7 +166,7 @@ def launch ():
     switch = Switch(event.connection)
     core.Interactive.variables['switch'] = switch
 
-    if not core.hasComponent(switch):
-      core.register('switch_pt', switch)
+    # if not core.hasComponent(switch):
+    #   core.register('switch_pt', switch)
 
   core.openflow.addListenerByName("ConnectionUp", start_switch)

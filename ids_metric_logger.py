@@ -23,7 +23,7 @@ class IDSMetricLogger(object):
 
     def write_results(self, filepath):
         attack_hosts = self.get_hosts(ATTACK_HOSTS_FILE)
-        attack_hosts = [x.rstrip() for x in attack_hosts]
+        attack_hosts = [x.rstrip() for x in attack_hosts[1:]]
         log.info('Attack Hosts: %s' % str(attack_hosts))
 
         log.debug('Logged Hosts: %s' % str(global_blocked_ips.keys()))
