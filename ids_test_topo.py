@@ -104,14 +104,15 @@ class IDSTestFramework(Topo):
         self.create_internal_network(self.main_switch, self.int_mac_ip)
         self.create_external_network(self.main_switch, self.ext_mac_ip_dict)
 
-
     def __create_main_switch(self):
         main_switch = self.addSwitch('ms0')
         self.main_switch = main_switch
 
-
     # Generate internal network
-    def create_internal_network(self, main_switch, mac_ip_set, package=internal_network):
+    def create_internal_network(self,
+                                main_switch,
+                                mac_ip_set,
+                                package=internal_network):
         "Module loader for internal network generator"
 
         for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
@@ -123,7 +124,8 @@ class IDSTestFramework(Topo):
             self.int_topo_class = int_topo
 
             try:
-                hosts, switches, routers = int_topo.create_topo(self, main_switch, mac_ip_set)
+                hosts, switches, routers = int_topo.create_topo(
+                    self, main_switch, mac_ip_set)
                 self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
             except TypeError as e:
                 traceback.print_exc()
@@ -134,9 +136,11 @@ class IDSTestFramework(Topo):
         print 'SWITCHES: %s\n' % str(self.int_switches)
         print 'ROUTERS: %s\n' % str(self.int_routers)
 
-
     # Generate test network
-    def create_external_network(self, main_switch, ext_mac_set, package=external_network):
+    def create_external_network(self,
+                                main_switch,
+                                ext_mac_set,
+                                package=external_network):
         "Module loader for external network generator"
 
         offset = len(self.int_switches)
@@ -150,8 +154,8 @@ class IDSTestFramework(Topo):
             self.ext_topo_class = ext_topo
 
             try:
-                hosts, switches, routers = ext_topo.create_topo(self, main_switch,
-                                                                ext_mac_set, offset)
+                hosts, switches, routers = ext_topo.create_topo(
+                    self, main_switch, ext_mac_set, offset)
                 self.ext_hosts, self.ext_switches, self.ext_routers = hosts, switches, routers
             except TypeError:
                 traceback.print_exc()
@@ -162,12 +166,10 @@ class IDSTestFramework(Topo):
         print 'SWITCHES: %s\n' % str(self.ext_switches)
         print 'ROUTERS: %s\n' % str(self.ext_routers)
 
-
     # def generate_ip_aliases(self, hosts):
     #     print 'Generate Aliases'
     #     offset = len(self.int_switches)
     #     self.ext_topo_class().generate_ip_aliases(hosts, self.ext_mac_ip_dict, offset)
-
 
     # def configure_routers(net):
     #     "Set subnet to interface routing of internal hosts"
@@ -179,14 +181,12 @@ class IDSTestFramework(Topo):
     #         for network_addr, dest_router in routers.iteritems():
     #             info()
 
-
     def start_internal_servers(self, directory, port):
         print '\nStarting internal network hosts servers:'
         for host in self.ext_hosts:
             host.cmd('cd %s' % directory)
             host.cmd('python -m SimpleHTTPServer %s &' % str(port))
             print '%s server started' % str(host)
-
 
     # Run specified test (Defaults to: all tests)
     def exec_test_cases(self, test, targets, package=test_cases):
@@ -235,14 +235,12 @@ class IDSTestFramework(Topo):
 
         return attack_hosts_arr
 
-
     def generate_background_traffic(self, hosts, target_hosts, port, filename):
         for i in range(0, len(target_hosts)):
             ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i],
                                                           port, filename)
             print 'Executing ab command: %s' % ab_cmd
             info(hosts[i].cmd(ab_cmd))
-
 
     # Load class given a module
     def __load_class(self, module):
@@ -260,7 +258,6 @@ class IDSTestFramework(Topo):
 
         return data_list
 
-
     # Generate set of MAC - IP pairs from file
     def read_mac_ip_file(self, filename):
 
@@ -273,13 +270,12 @@ class IDSTestFramework(Topo):
             for pair in pairs:
                 mac, ip = pair.split()
                 # if ip in ip_tracker:
-                    # continue
+                # continue
 
                 mac_ip_set.add((mac, ip))
                 # ip_tracker.append(ip)
 
         return mac_ip_set
-
 
     # Split MAC - IP set
     def split_mac_ip(self, mac_ip_set, int_net_ip_pattern):
@@ -317,10 +313,18 @@ def main():
     # int_hosts = [net.get(host) for host in ids_test.int_hosts]
     # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
 
-    int_routers = [net.get(router.name) for key, router in ids_test.int_routers.iteritems()]
-    ext_routers = [net.get(router.name) for key, router in ids_test.ext_routers.iteritems()]
-    ids_test.int_topo_class.configure_routers(int_routers, ids_test.ext_routers)
-    ids_test.ext_topo_class.configure_routers(ext_routers, ids_test.int_routers)
+    int_routers = [
+        net.get(router.name)
+        for key, router in ids_test.int_routers.iteritems()
+    ]
+    ext_routers = [
+        net.get(router.name)
+        for key, router in ids_test.ext_routers.iteritems()
+    ]
+    ids_test.int_topo_class.configure_routers(int_routers,
+                                              ids_test.ext_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers,
+                                              ids_test.int_routers)
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)

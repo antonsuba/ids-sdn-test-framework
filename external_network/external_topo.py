@@ -46,15 +46,20 @@ class ExternalTopo(object):
             #     network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 
             aliases = ip_list
-            alias_set = set((alias.rsplit('.', 1)[:-1])[0] + '.' + str(int(alias.rsplit('.', 1)[-1]) + 1)
+            alias_set = set((alias.rsplit('.', 1)[:-1])[0] + '.' +
+                            str(int(alias.rsplit('.', 1)[-1]) + 1)
                             for alias in aliases)
 
             # Create and link host and switch
-            router = self.__get_router(topo, main_switch, network_addr, alias_set, offset)
+            router = self.__get_router(topo, main_switch, network_addr,
+                                       alias_set, offset)
 
             host_ip = '%s/%s' % (ip, self.subnet_mask)
-            host = topo.addHost('h%s' % str(mac_ip_counter + offset), ip=host_ip,
-                                mac=mac, defaultRoute='via %s' % router.ip)
+            host = topo.addHost(
+                'h%s' % str(mac_ip_counter + offset),
+                ip=host_ip,
+                mac=mac,
+                defaultRoute='via %s' % router.ip)
             switch = topo.addSwitch('s' + str(mac_ip_counter + offset))
 
             topo.addLink(host, switch)
@@ -69,16 +74,16 @@ class ExternalTopo(object):
 
         return self.hosts, self.switches, self.routers
 
-
     def __create_tcpreplay_host(self, topo, switch_num):
-        replay_host = topo.addHost('rh0', ip='192.168.19.%i' % len(self.hosts),
-                                   defaultRoute='via 192.168.19.253')
+        replay_host = topo.addHost(
+            'rh0',
+            ip='192.168.19.%i' % len(self.hosts),
+            defaultRoute='via 192.168.19.253')
         switch = topo.addSwitch('s%i' % switch_num)
         router = self.routers.itervalues().next()
 
         topo.addLink(replay_host, switch)
         topo.addLink(switch, router.name)
-
 
     def __get_router(self, topo, main_switch, network_addr, aliases, offset):
         counter = len(self.routers) + offset
@@ -91,21 +96,25 @@ class ExternalTopo(object):
 
             # router_ip = network_addr[:-5] + '.1'
             router_ip = '192.168.19.253'
-            router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
-                                       ip=router_ip + '/24')
+            router_name = topo.addNode(
+                'r%i' % counter, cls=LinuxRouter, ip=router_ip + '/24')
 
             Router = namedtuple('Router', 'name, ip, link_ip, aliases')
-            router = Router(name=router_name, ip=router_ip, link_ip=link_ip, aliases=aliases)
+            router = Router(
+                name=router_name,
+                ip=router_ip,
+                link_ip=link_ip,
+                aliases=aliases)
             self.routers[network_addr] = router
 
             switch = topo.addSwitch('ss%i' % counter)
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
-            topo.addLink(router_name, main_switch, params1={'ip': link_ip  + '/24'})
+            topo.addLink(
+                router_name, main_switch, params1={'ip': link_ip + '/24'})
 
         return router
-
 
     def generate_ip_aliases(self, routers, hosts):
         "Generate IP aliases for IPs with same MAC"
@@ -122,11 +131,15 @@ class ExternalTopo(object):
 
         for i in range(len(aliases)):
             alias = aliases[i]
-            router_alias_ip = (alias.rsplit('.', 1)[:-1])[0] + '.' + str(int(alias.rsplit('.', 1)[-1]) + 1)
+            router_alias_ip = (alias.rsplit(
+                '.',
+                1)[:-1])[0] + '.' + str(int(alias.rsplit('.', 1)[-1]) + 1)
 
-            print 'ifconfig %s-eth0:%i %s up' % (router.name, i, router_alias_ip)
-            info(router.cmd('ifconfig %s-eth0:%i %s up' %
-                            (router_info.name, i, router_alias_ip)))
+            print 'ifconfig %s-eth0:%i %s up' % (router.name, i,
+                                                 router_alias_ip)
+            info(
+                router.cmd('ifconfig %s-eth0:%i %s up' % (router_info.name, i,
+                                                          router_alias_ip)))
 
         for mac, ip_set in mac_ip_dict.iteritems():
             ip_list = list(ip_set)
@@ -137,11 +150,12 @@ class ExternalTopo(object):
 
             for i in range(0, len(ip_list) - 1):
                 ip = ip_list[i + 1]
-                info(host.cmd('ifconfig h%i-eth0:%i %s up' % ((host_num + offset), i, ip)))
+                info(
+                    host.cmd('ifconfig h%i-eth0:%i %s up' % ((host_num + offset
+                                                              ), i, ip)))
                 # info(host.cmd('ip route del '))
 
             host_num += 1
-
 
     def configure_routers(self, routers, int_routers_dict):
         "Add routes to other routers"
@@ -156,10 +170,14 @@ class ExternalTopo(object):
                 dest_ip = dest_router.link_ip
 
                 # print 'ip route add %s via %s' % (network_addr, dest_ip)
-                info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))
+                info(
+                    router.cmd('ip route add %s via %s' % (network_addr,
+                                                           dest_ip)))
 
                 if dest_router.aliases:
                     for alias in dest_router.aliases:
                         print router.IP()
                         print 'ip route add %s via %s' % (alias, dest_ip)
-                        info(router.cmd('ip route add %s via %s' % (alias, dest_ip)))
+                        info(
+                            router.cmd('ip route add %s via %s' % (alias,
+                                                                   dest_ip)))

@@ -4,6 +4,7 @@ from mininet.node import Node
 from mininet.log import info
 from collections import namedtuple
 
+
 class LinuxRouter(Node):
     "A Node with IP forwarding enabled."
 
@@ -42,14 +43,18 @@ class DistributedTopo(object):
             if ip[-3:] == '255':
                 continue
 
-            network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
+            network_addr = (ip.rsplit('.',
+                                      1)[:-1])[0] + '.0/' + self.subnet_mask
 
             # Create and link host and switch
             router = self.__get_router(topo, main_switch, network_addr)
 
             host_ip = '%s/%s' % (ip, self.subnet_mask)
-            host = topo.addHost('h%i' % mac_ip_counter, ip=host_ip,
-                                mac=mac, defaultRoute='via %s' % router.ip)
+            host = topo.addHost(
+                'h%i' % mac_ip_counter,
+                ip=host_ip,
+                mac=mac,
+                defaultRoute='via %s' % router.ip)
             switch = topo.addSwitch('s%s' % str(mac_ip_counter))
 
             topo.addLink(host, switch)
@@ -62,7 +67,6 @@ class DistributedTopo(object):
 
         return self.hosts, self.switches, self.routers
 
-
     def __get_router(self, topo, main_switch, network_addr):
         counter = len(self.routers)
         try:
@@ -72,21 +76,22 @@ class DistributedTopo(object):
             link_ip = link_subnet + str(counter + 1)
 
             router_ip = network_addr[:-5] + '.1'
-            router_name = topo.addNode('r%i' % counter, cls=LinuxRouter,
-                                       ip=router_ip + '/24')
+            router_name = topo.addNode(
+                'r%i' % counter, cls=LinuxRouter, ip=router_ip + '/24')
 
             Router = namedtuple('Router', 'name, ip, link_ip, aliases')
-            router = Router(name=router_name, ip=router_ip, link_ip=link_ip, aliases=())
+            router = Router(
+                name=router_name, ip=router_ip, link_ip=link_ip, aliases=())
             self.routers[network_addr] = router
 
             switch = topo.addSwitch('ss%i' % counter)
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
-            topo.addLink(router_name, main_switch, params1={'ip': link_ip  + '/24'})
+            topo.addLink(
+                router_name, main_switch, params1={'ip': link_ip + '/24'})
 
         return router
-
 
     def configure_routers(self, routers, ext_routers_dict):
         "Add routes to other routers"
@@ -97,7 +102,8 @@ class DistributedTopo(object):
         ext_router = ext_routers_dict.itervalues().next()
 
         for router in routers:
-            info(router.cmd('ip route add default via %s' % ext_router.link_ip))
+            info(
+                router.cmd('ip route add default via %s' % ext_router.link_ip))
 
             for network_addr, dest_router in self.routers.iteritems():
                 if dest_router.ip == router.IP():
@@ -106,4 +112,6 @@ class DistributedTopo(object):
                 dest_ip = dest_router.link_ip
 
                 # print 'ip route add %s via %s' % (network_addr, dest_ip)
-                info(router.cmd('ip route add %s via %s' % (network_addr, dest_ip)))
+                info(
+                    router.cmd('ip route add %s via %s' % (network_addr,
+                                                           dest_ip)))
