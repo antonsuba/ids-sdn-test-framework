@@ -323,6 +323,12 @@ def main():
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
+    int_switches = [net.get(switch) for switch in ids_test.int_switches]
+    ext_switches = [net.get(switch) for switch in ids_test.ext_switches]
+
+    # print str(int_switches + ext_switches)
+    print ids_test.switches(sort=False)
+
     # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
 

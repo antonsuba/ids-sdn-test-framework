@@ -60,6 +60,8 @@ class DistributedTopo(object):
 
             mac_ip_counter += 1
 
+        print self.switches
+
         return self.hosts, self.switches, self.routers
 
 
