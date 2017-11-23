@@ -65,6 +65,8 @@ class DistributedTopo(object):
 
             mac_ip_counter += 1
 
+        print self.switches
+
         return self.hosts, self.switches, self.routers
 
     def __get_router(self, topo, main_switch, network_addr):

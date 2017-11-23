@@ -26,12 +26,11 @@ TARGET_HOSTS_FILE = '/media/sf_ids-sdn/config/target_hosts.txt'
 
 
 class PacketChecker(object):
-    def __init__(self, connection):
+    def __init__(self, connection, dpid):
         self.connection = connection
         connection.addListeners(self)
 
-        self.number = switch_number
-        print self.number
+        self.number = dpid
         self.attached_host = '10.0.0.' + str(self.number)
         self.enable_checker = False
         self.srcip_list = {}
@@ -45,6 +44,9 @@ class PacketChecker(object):
 
         self.clf = joblib.load(CLASSIFIER_FILE)
         log.info('Classifier loaded')
+
+        log.info('Connection:')
+        log.info(connection)
 
         log.info('Switch active')
         log.info('Switch number:' + str(self.number))
@@ -201,7 +203,7 @@ def launch():
         global switch_number
         switch_number += 1
         log.debug("Controlling %s" % (event.connection, ))
-        checker.append(PacketChecker(event.connection))
+        checker.append(PacketChecker(event.connection, event.dpid))
         core.Interactive.variables['checker'] = checker
 
     core.openflow.addListenerByName("ConnectionUp", start_switch)
