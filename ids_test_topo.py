@@ -59,7 +59,7 @@ SWITCHES = list()
 BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -215,23 +215,25 @@ class IDSTestFramework(Topo):
             ipaddr = host.cmd('hostname -I')
 
             targets_arr.append(ipaddr.rstrip())
-            targets_file.write('%i_%s' % (i, ipaddr))
+            targets_file.write('%i_%s' % (i + 1, ipaddr))
 
         return targets_arr
 
-    # def log_attack_hosts(self):
-    #     attack_file = open(ATTACK_HOSTS_FILE, 'w+')
-    #     attack_hosts_arr = list()
+    def log_attack_hosts(self):
+        attack_file = open(ATTACK_HOSTS_FILE, 'w+')
+        attack_hosts_arr = list()
 
-    #     offset = len(SWITCHES)
-    #     for i in range(offset, len(BACKGROUND_HOSTS) + offset - 1):
-    #         host = net.get('h' + str(i))
-    #         ipaddr = host.cmd('hostname -I')
+        offset = len(self.int_switches) + len(self.ext_switches)
+        for i in range(offset, len(self.ext_hosts) + offset - 1):
+            host = net.get('h' + str(i))
+            switch = net.get('s' + str(i))
+            switch.attached
+            ipaddr = host.cmd('hostname -I')
 
-    #         attack_hosts_arr.append(ipaddr.rstrip())
-    #         attack_file.write('%s' % (ipaddr))
+            attack_hosts_arr.append(ipaddr.rstrip())
+            attack_file.write('%s' % (ipaddr))
 
-    #     return attack_hosts_arr
+        return attack_hosts_arr
 
 
     def generate_background_traffic(self, hosts, target_hosts, port, filename):
