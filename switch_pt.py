@@ -14,7 +14,7 @@ global_mac_to_port = {}
 
 class Switch (object):
 
-  def __init__ (self, connection):
+  def __init__ (self, connection, dpid):
     # Keep track of the connection to the switch so that we can
     # send it messages!
     self.connection = connection
@@ -22,7 +22,7 @@ class Switch (object):
     # This binds our PacketIn event listener
     connection.addListeners(self)
 
-    self.number = switch_num
+    self.number = dpid
 
     # Use this table to keep track of which ethernet address is on
     # which switch port (keys are MACs, values are ports).
@@ -71,7 +71,7 @@ class Switch (object):
       log.info("Destination MAC: %s" % (arp_packet.hwdst))
 
     # Learn the port for the source MAC
-    log.info('Packet src: %s' % packet.src)
+    # log.info('Packet src: %s' % packet.src)
     self.mac_to_port[packet.src] = packet_in.in_port
     try:
       switch_mac_port = global_mac_to_port[self.number]
@@ -163,7 +163,7 @@ def launch ():
     global switch_num
     switch_num += 1
     log.debug("Controlling %s" % (event.connection,))
-    switch = Switch(event.connection)
+    switch = Switch(event.connection, event.dpid)
     core.Interactive.variables['switch'] = switch
 
     # if not core.hasComponent(switch):

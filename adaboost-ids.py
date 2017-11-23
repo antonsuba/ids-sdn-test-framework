@@ -31,7 +31,6 @@ class PacketChecker(object):
         connection.addListeners(self)
 
         self.number = dpid
-        print self.number
         self.attached_host = '10.0.0.' + str(self.number)
         self.enable_checker = False
         self.srcip_list = {}
@@ -204,7 +203,6 @@ def launch():
         global switch_number
         switch_number += 1
         log.debug("Controlling %s" % (event.connection, ))
-        log.debug("Switch %s has come up." % event.dpid)
         checker.append(PacketChecker(event.connection, event.dpid))
         core.Interactive.variables['checker'] = checker
 
