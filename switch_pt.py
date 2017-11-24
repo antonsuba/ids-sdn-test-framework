@@ -51,8 +51,8 @@ class Switch (object):
     Implement switch-like behavior.
     """
 
-    log.info('Switch Num: %i' % self.number)
-    log.info('Packet: %s' % packet)
+    # log.info('Switch Num: %i' % self.number)
+    # log.info('Packet: %s' % packet)
 
     #Parse packet info to gain an idea of what is happening
     #if controller receives packet

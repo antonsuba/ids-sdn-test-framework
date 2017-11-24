@@ -55,7 +55,9 @@ class ExternalTopo(object):
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost('h%s' % str(mac_ip_counter + offset), ip=host_ip,
                                 mac=mac, defaultRoute='via %s' % router.ip)
-            switch = topo.addSwitch('s' + str(mac_ip_counter + offset))
+
+            switch_num = len(self.switches) + offset + 1
+            switch = topo.addSwitch('s%i' % switch_num)
 
             topo.addLink(host, switch)
             topo.addLink(switch, self.switches[router.name])
@@ -98,7 +100,8 @@ class ExternalTopo(object):
             router = Router(name=router_name, ip=router_ip, link_ip=link_ip, aliases=aliases)
             self.routers[network_addr] = router
 
-            switch = topo.addSwitch('ss%i' % counter)
+            switch_num = len(self.switches) + offset + 1
+            switch = topo.addSwitch('s%i' % switch_num)
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
