@@ -59,7 +59,7 @@ SWITCHES = list()
 BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
+MAC_IP_FILE = 'config/mac_ip.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -215,7 +215,7 @@ class IDSTestFramework(Topo):
             ipaddr = host.cmd('hostname -I')
 
             targets_arr.append(ipaddr.rstrip())
-            targets_file.write('%i_%s' % (i + 1, ipaddr))
+            targets_file.write('%i_%s' % (i, ipaddr))
 
         return targets_arr
 
