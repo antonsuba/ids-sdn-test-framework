@@ -55,7 +55,7 @@ class DistributedTopo(object):
                 ip=host_ip,
                 mac=mac,
                 defaultRoute='via %s' % router.ip)
-            switch = topo.addSwitch('s%s' % str(mac_ip_counter))
+            switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)
             topo.addLink(switch, self.switches[router.name])
@@ -65,7 +65,7 @@ class DistributedTopo(object):
 
             mac_ip_counter += 1
 
-        print self.switches
+        # print self.switches
 
         return self.hosts, self.switches, self.routers
 
@@ -86,7 +86,7 @@ class DistributedTopo(object):
                 name=router_name, ip=router_ip, link_ip=link_ip, aliases=())
             self.routers[network_addr] = router
 
-            switch = topo.addSwitch('ss%i' % counter)
+            switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)

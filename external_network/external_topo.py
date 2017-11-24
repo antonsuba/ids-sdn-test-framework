@@ -60,7 +60,8 @@ class ExternalTopo(object):
                 ip=host_ip,
                 mac=mac,
                 defaultRoute='via %s' % router.ip)
-            switch = topo.addSwitch('s' + str(mac_ip_counter + offset))
+            switch_num = len(self.switches) + offset + 1
+            switch = topo.addSwitch('s%i' % switch_num)
 
             topo.addLink(host, switch)
             topo.addLink(switch, self.switches[router.name])
@@ -107,7 +108,8 @@ class ExternalTopo(object):
                 aliases=aliases)
             self.routers[network_addr] = router
 
-            switch = topo.addSwitch('ss%i' % counter)
+            switch_num = len(self.switches) + offset + 1
+            switch = topo.addSwitch('s%i' % switch_num)
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)

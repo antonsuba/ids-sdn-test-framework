@@ -31,7 +31,8 @@ class PacketChecker(object):
         connection.addListeners(self)
 
         self.number = dpid
-        self.attached_host = '10.0.0.' + str(self.number)
+        self.attached_host = None
+        self.attached_host_num = None        
         self.enable_checker = False
         self.srcip_list = {}
         self.black_list = list()
@@ -58,14 +59,16 @@ class PacketChecker(object):
 
         f = open(filepath, 'r')
         for line in f:
-            host = line.split("_")
-            num = int(host[0])
-            ip = host[1].split()[0]
+            host = line.split('_')
+            host_num = int(host[0])
+            switch_num = int(host[1])
+            ip = host[2].split()[0]
 
-            if num == self.number:
+            if switch_num == self.number:
                 self.set_checker(True)
                 self.attached_host = ip
-                log.debug('IDS Switch %i activated with IP %s' % (num, ip))
+                self.attached_host_num = host_num
+                log.debug('IDS Switch %i activated with IP %s' % (switch_num, ip))
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
@@ -109,8 +112,8 @@ class PacketChecker(object):
             packet_in = event.ofp
 
             self.count += 1
-            log.info("Switch#" + str(self.number) + " packet# " +
-                     str(self.count))
+            log.info('Host#%i' % self.attached_host_num)
+            log.info('Switch#%i - packet#%i' % (self.number, self.count))
 
             ip = packet.find('ipv4')
             if ip is None:

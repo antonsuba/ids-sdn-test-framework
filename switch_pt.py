@@ -57,60 +57,60 @@ class Switch(object):
     Implement switch-like behavior.
     """
 
-        log.info('Switch Num: %i' % self.number)
-        log.info('Packet: %s' % packet)
+    # log.info('Switch Num: %i' % self.number)
+    # log.info('Packet: %s' % packet)
 
-        # Parse packet info to gain an idea of what is happening
-        # if controller receives packet
-        if packet.type == pkt.ethernet.IP_TYPE:
-            ip_packet = packet.payload
-            log.info("IP Packet detected")
-            log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
-            log.info("Source IP: %s" % (ip_packet.srcip))
-            log.info("Destination IP: %s" % (ip_packet.dstip))
+    # Parse packet info to gain an idea of what is happening
+    # if controller receives packet
+    if packet.type == pkt.ethernet.IP_TYPE:
+        ip_packet = packet.payload
+        log.info("IP Packet detected")
+        log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
+        log.info("Source IP: %s" % (ip_packet.srcip))
+        log.info("Destination IP: %s" % (ip_packet.dstip))
 
-        if packet.type == pkt.ethernet.ARP_TYPE:
-            arp_packet = packet.payload
-            log.info("ARP Packet detected")
-            log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
-            log.info("Source MAC: %s" % (arp_packet.hwsrc))
-            log.info("Destination MAC: %s" % (arp_packet.hwdst))
+    if packet.type == pkt.ethernet.ARP_TYPE:
+        arp_packet = packet.payload
+        log.info("ARP Packet detected")
+        log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
+        log.info("Source MAC: %s" % (arp_packet.hwsrc))
+        log.info("Destination MAC: %s" % (arp_packet.hwdst))
 
-        # Learn the port for the source MAC
-        # log.info('Packet src: %s' % packet.src)
-        self.mac_to_port[packet.src] = packet_in.in_port
-        try:
-            switch_mac_port = global_mac_to_port[self.number]
-            switch_mac_port[packet.src] = packet_in.in_port
-        except KeyError:
-            global_mac_to_port[self.number] = {packet.src: packet_in.in_port}
+    # Learn the port for the source MAC
+    # log.info('Packet src: %s' % packet.src)
+    self.mac_to_port[packet.src] = packet_in.in_port
+    try:
+        switch_mac_port = global_mac_to_port[self.number]
+        switch_mac_port[packet.src] = packet_in.in_port
+    except KeyError:
+        global_mac_to_port[self.number] = {packet.src: packet_in.in_port}
 
-        src_port = packet_in.in_port
+    src_port = packet_in.in_port
 
-        # log.info('Packet In: %s' % packet_in)
-        # log.info('Packet src: %s' % packet.src)
-        # log.info('Packet src_port: %s' % src_port)
-        # log.info('Packet dst: %s' % packet.dst)
-        # log.info('Switch mac_to_port: %s' % str(global_mac_to_port))
-        # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
+    # log.info('Packet In: %s' % packet_in)
+    # log.info('Packet src: %s' % packet.src)
+    # log.info('Packet src_port: %s' % src_port)
+    # log.info('Packet dst: %s' % packet.dst)
+    # log.info('Switch mac_to_port: %s' % str(global_mac_to_port))
+    # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
 
-        if packet.dst in self.mac_to_port:
-            dst_port = self.mac_to_port[packet.dst]
+    if packet.dst in self.mac_to_port:
+        dst_port = self.mac_to_port[packet.dst]
 
-            log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
-                                                     packet.dst, dst_port))
-            msg = of.ofp_flow_mod()
-            msg.match = of.ofp_match.from_packet(packet)
-            msg.idle_timeout = 10
-            msg.hard_timeout = 30
-            msg.actions.append(of.ofp_action_output(port=dst_port))
-            self.connection.send(msg)
-            self.resend_packet(packet_in, dst_port)
-        else:
-            # Flood the packet out everything but the input port
-            # This part looks familiar, right?
-            log.info('Resend Packet')
-            self.resend_packet(packet_in, of.OFPP_ALL)
+        log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
+                                                 packet.dst, dst_port))
+        msg = of.ofp_flow_mod()
+        msg.match = of.ofp_match.from_packet(packet)
+        msg.idle_timeout = 10
+        msg.hard_timeout = 30
+        msg.actions.append(of.ofp_action_output(port=dst_port))
+        self.connection.send(msg)
+        self.resend_packet(packet_in, dst_port)
+    else:
+        # Flood the packet out everything but the input port
+        # This part looks familiar, right?
+        log.info('Resend Packet')
+        self.resend_packet(packet_in, of.OFPP_ALL)
 
     def _handle_PacketIn(self, event):
         """

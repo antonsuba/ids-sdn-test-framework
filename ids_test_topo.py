@@ -105,7 +105,7 @@ class IDSTestFramework(Topo):
         self.create_external_network(self.main_switch, self.ext_mac_ip_dict)
 
     def __create_main_switch(self):
-        main_switch = self.addSwitch('ms0')
+        main_switch = self.addSwitch('s0')
         self.main_switch = main_switch
 
     # Generate internal network
@@ -211,11 +211,14 @@ class IDSTestFramework(Topo):
         targets_arr = list()
 
         for i in range(len(self.int_hosts)):
-            host = net.get('h' + str(i))
+            host_name = 'h%i' % i
+            host = net.get(host_name)
             ipaddr = host.cmd('hostname -I')
 
+            switch_num = int(self.int_switches[host_name][1:])
+
             targets_arr.append(ipaddr.rstrip())
-            targets_file.write('%i_%s' % (i, ipaddr))
+            targets_file.write('%i_%i_%s' % (i, switch_num, ipaddr))
 
         return targets_arr
 
@@ -328,12 +331,6 @@ def main():
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
-
-    int_switches = [net.get(switch) for switch in ids_test.int_switches]
-    ext_switches = [net.get(switch) for switch in ids_test.ext_switches]
-
-    # print str(int_switches + ext_switches)
-    print ids_test.switches(sort=False)
 
     # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
