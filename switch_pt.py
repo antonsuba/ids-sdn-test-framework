@@ -165,18 +165,12 @@ def launch():
     """
   Starts the component
   """
-  def start_switch (event):
-    global switch_num
-    switch_num += 1
-    log.debug("Controlling %s" % (event.connection,))
-    switch = Switch(event.connection, event.dpid)
-    core.Interactive.variables['switch'] = switch
 
     def start_switch(event):
         global switch_num
         switch_num += 1
         log.debug("Controlling %s" % (event.connection, ))
-        switch = Switch(event.connection)
+        switch = Switch(event.connection, event.dpid)
         core.Interactive.variables['switch'] = switch
 
         # if not core.hasComponent(switch):
