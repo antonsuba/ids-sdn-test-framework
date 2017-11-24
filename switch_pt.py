@@ -101,8 +101,8 @@ class Switch(object):
                                                     packet.dst, dst_port))
             msg = of.ofp_flow_mod()
             msg.match = of.ofp_match.from_packet(packet)
-            msg.idle_timeout = 10
-            msg.hard_timeout = 30
+            msg.idle_timeout = 1
+            msg.hard_timeout = 3
             msg.actions.append(of.ofp_action_output(port=dst_port))
             self.connection.send(msg)
             self.resend_packet(packet_in, dst_port)
