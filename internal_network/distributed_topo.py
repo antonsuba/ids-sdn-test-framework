@@ -23,7 +23,7 @@ class DistributedTopo(object):
     "Internal network topology class"
 
     def __init__(self):
-        self.subnet_mask = '24'
+        self.subnet_mask = '16'
         self.hosts = list()
         self.switches = dict()
         self.routers = dict()
@@ -43,8 +43,7 @@ class DistributedTopo(object):
             if ip[-3:] == '255':
                 continue
 
-            network_addr = (ip.rsplit('.',
-                                      1)[:-1])[0] + '.0/' + self.subnet_mask
+            network_addr = '192.168.0.0/' + self.subnet_mask
 
             # Create and link host and switch
             router = self.__get_router(topo, main_switch, network_addr)
