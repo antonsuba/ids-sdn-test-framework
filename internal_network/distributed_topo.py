@@ -26,7 +26,6 @@ class DistributedTopo(object):
         self.subnet_mask = '16'
         self.hosts = list()
         self.switches = dict()
-        self.routers = dict()
         self.mac_ip_list = None
 
     def create_topo(self, topo, main_switch, mac_ip_list):
@@ -43,21 +42,18 @@ class DistributedTopo(object):
             if ip[-3:] == '255':
                 continue
 
-            network_addr = '192.168.0.0/' + self.subnet_mask
-
             # Create and link host and switch
-            router = self.__get_router(topo, main_switch, network_addr)
-
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost(
                 'h%i' % mac_ip_counter,
                 ip=host_ip,
                 mac=mac,
-                defaultRoute='via %s' % router.ip)
+                defaultRoute='via %s' %
+                router.ip)  # TODO: Change default route
             switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)
-            topo.addLink(switch, self.switches[router.name])
+            topo.addLink(switch, main_switch)
 
             self.hosts.append(host)
             self.switches[host] = switch
@@ -66,38 +62,10 @@ class DistributedTopo(object):
 
         # print self.switches
 
-        return self.hosts, self.switches, self.routers
-
-    def __get_router(self, topo, main_switch, network_addr):
-        counter = len(self.routers)
-        try:
-            router = self.routers[network_addr]
-        except KeyError:
-            link_subnet = '192.168.20.'
-            link_ip = link_subnet + str(counter + 1)
-
-            router_ip = network_addr[:-5] + '.1'
-            router_name = topo.addNode(
-                'r%i' % counter, cls=LinuxRouter, ip=router_ip + '/24')
-
-            Router = namedtuple('Router', 'name, ip, link_ip, aliases')
-            router = Router(
-                name=router_name, ip=router_ip, link_ip=link_ip, aliases=())
-            self.routers[network_addr] = router
-
-            switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
-            self.switches[router_name] = switch
-
-            topo.addLink(router_name, switch)
-            topo.addLink(
-                router_name, main_switch, params1={'ip': link_ip + '/24'})
-
-        return router
+        return self.hosts, self.switches
 
     def configure_routers(self, routers, ext_routers_dict):
         "Add routes to other routers"
-
-        # all_routers_dict = dict(self.routers, **ext_routers_dict)
 
         print str(ext_routers_dict)
         ext_router = ext_routers_dict.itervalues().next()

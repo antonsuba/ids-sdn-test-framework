@@ -78,7 +78,6 @@ class IDSTestFramework(Topo):
         self.ext_mac_ip_dict = None
 
         self.main_switch = None
-        self.int_routers = dict()
         self.ext_routers = dict()
         self.int_hosts = list()
         self.ext_hosts = list()
@@ -124,9 +123,9 @@ class IDSTestFramework(Topo):
             self.int_topo_class = int_topo
 
             try:
-                hosts, switches, routers = int_topo.create_topo(
-                    self, main_switch, mac_ip_set)
-                self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
+                hosts, switches = int_topo.create_topo(self, main_switch,
+                                                       mac_ip_set)
+                self.int_hosts, self.int_switches = hosts, switches
             except TypeError as e:
                 traceback.print_exc()
                 print '%s must have create_topo(topo, mac_ip_set) method' % topo_name
@@ -134,7 +133,6 @@ class IDSTestFramework(Topo):
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
         print 'SWITCHES: %s\n' % str(self.int_switches)
-        print 'ROUTERS: %s\n' % str(self.int_routers)
 
     # Generate test network
     def create_external_network(self,
@@ -142,8 +140,6 @@ class IDSTestFramework(Topo):
                                 ext_mac_set,
                                 package=external_network):
         "Module loader for external network generator"
-
-        offset = len(self.int_switches)
 
         for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
@@ -155,7 +151,7 @@ class IDSTestFramework(Topo):
 
             try:
                 hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set, offset)
+                    self, main_switch, ext_mac_set)
                 self.ext_hosts, self.ext_switches, self.ext_routers = hosts, switches, routers
             except TypeError:
                 traceback.print_exc()
