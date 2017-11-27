@@ -59,7 +59,7 @@ SWITCHES = list()
 BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
