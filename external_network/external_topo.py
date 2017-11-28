@@ -169,7 +169,7 @@ class ExternalTopo(object):
 
                 dest_ip = dest_router.link_ip
 
-                # print 'ip route add %s via %s' % (network_addr, dest_ip)
+                print 'ip route add %s via %s' % (network_addr, dest_ip)
                 info(
                     router.cmd('ip route add %s via %s' % (network_addr,
                                                            dest_ip)))

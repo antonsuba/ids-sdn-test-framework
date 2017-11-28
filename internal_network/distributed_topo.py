@@ -50,7 +50,7 @@ class DistributedTopo(object):
                 ip=host_ip,
                 mac=mac,
                 defaultRoute='via %s' %
-                self.ext_router_ip)  #w TODO: Change default route
+                self.ext_router_ip)
             switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)
@@ -65,23 +65,23 @@ class DistributedTopo(object):
 
         return self.hosts, self.switches
 
-    def configure_routers(self, routers, ext_routers_dict):
-        "Add routes to other routers"
+    # def configure_routers(self, routers, ext_routers_dict):
+    #     "Add routes to other routers"
 
-        print str(ext_routers_dict)
-        ext_router = ext_routers_dict.itervalues().next()
+    #     print str(ext_routers_dict)
+    #     ext_router = ext_routers_dict.itervalues().next()
 
-        for router in routers:
-            info(
-                router.cmd('ip route add default via %s' % ext_router.link_ip))
+    #     for router in routers:
+    #         info(
+    #             router.cmd('ip route add default via %s' % ext_router.link_ip))
 
-            for network_addr, dest_router in self.routers.iteritems():
-                if dest_router.ip == router.IP():
-                    continue
+    #         for network_addr, dest_router in self.routers.iteritems():
+    #             if dest_router.ip == router.IP():
+    #                 continue
 
-                dest_ip = dest_router.link_ip
+    #             dest_ip = dest_router.link_ip
 
-                # print 'ip route add %s via %s' % (network_addr, dest_ip)
-                info(
-                    router.cmd('ip route add %s via %s' % (network_addr,
-                                                           dest_ip)))
+    #             # print 'ip route add %s via %s' % (network_addr, dest_ip)
+    #             info(
+    #                 router.cmd('ip route add %s via %s' % (network_addr,
+    #                                                        dest_ip)))

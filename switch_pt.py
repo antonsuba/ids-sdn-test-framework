@@ -176,4 +176,4 @@ def launch():
         # if not core.hasComponent(switch):
         #   core.register('switch_pt', switch)
 
-    core.openflow.addListenerByName("ConnectionUp", start_switch)
+    core.openflow.addListenerByName('ConnectionUp', start_switch)

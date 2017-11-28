@@ -53,13 +53,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-HOSTS = list()
-SWITCHES = list()
-
-BACKGROUND_HOSTS = list()
-TEST_SWITCHES = list()
-
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -197,7 +191,7 @@ class IDSTestFramework(Topo):
 
             try:
                 print 'Executing %s' % test_name
-                self.generate_background_traffic(BACKGROUND_HOSTS, targets,
+                self.generate_background_traffic(self.ext_hosts, targets,
                                                  8000, 'sample1.txt')
                 # test_class().run_test(targets, BACKGROUND_HOSTS)
             except TypeError:
@@ -220,7 +214,7 @@ class IDSTestFramework(Topo):
 
         return targets_arr
 
-    def log_attack_hosts(self):
+    def log_attack_hosts(self, net):
         attack_file = open(ATTACK_HOSTS_FILE, 'w+')
         attack_hosts_arr = list()
 
