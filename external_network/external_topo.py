@@ -25,7 +25,6 @@ class ExternalTopo(object):
         self.hosts = list()
         self.switches = dict()
         self.routers = dict()
-
         self.offset = None
         self.mac_ip_dict = None
 
@@ -52,7 +51,7 @@ class ExternalTopo(object):
 
             # Create and link host and switch
             router = self.__get_router(topo, main_switch, network_addr,
-                                       alias_set, offset)
+                                       alias_set)
 
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost(
@@ -71,7 +70,7 @@ class ExternalTopo(object):
 
             mac_ip_counter += 1
 
-        self.__create_tcpreplay_host(topo, mac_ip_counter + offset)
+        self.__create_tcpreplay_host(topo, mac_ip_counter)
 
         return self.hosts, self.switches, self.routers
 
@@ -86,8 +85,8 @@ class ExternalTopo(object):
         topo.addLink(replay_host, switch)
         topo.addLink(switch, router.name)
 
-    def __get_router(self, topo, main_switch, network_addr, aliases, offset):
-        counter = len(self.routers) + offset
+    def __get_router(self, topo, main_switch, network_addr, aliases):
+        counter = len(self.routers)
         try:
             router = self.routers[network_addr]
             router.aliases.update(aliases)
@@ -108,13 +107,13 @@ class ExternalTopo(object):
                 aliases=aliases)
             self.routers[network_addr] = router
 
-            switch_num = len(self.switches) + offset + 1
+            switch_num = len(self.switches) + 1
             switch = topo.addSwitch('s%i' % switch_num)
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
             topo.addLink(
-                router_name, main_switch, params1={'ip': link_ip + '/24'})
+                router_name, main_switch, params1={'ip': link_ip + '/16'})
 
         return router
 
@@ -153,8 +152,7 @@ class ExternalTopo(object):
             for i in range(0, len(ip_list) - 1):
                 ip = ip_list[i + 1]
                 info(
-                    host.cmd('ifconfig h%i-eth0:%i %s up' % ((host_num + offset
-                                                              ), i, ip)))
+                    host.cmd('ifconfig h%i-eth0:%i %s up' % (host_num + offset, i, ip)))
                 # info(host.cmd('ip route del '))
 
             host_num += 1
@@ -171,7 +169,7 @@ class ExternalTopo(object):
 
                 dest_ip = dest_router.link_ip
 
-                # print 'ip route add %s via %s' % (network_addr, dest_ip)
+                print 'ip route add %s via %s' % (network_addr, dest_ip)
                 info(
                     router.cmd('ip route add %s via %s' % (network_addr,
                                                            dest_ip)))

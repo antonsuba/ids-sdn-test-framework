@@ -53,13 +53,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-HOSTS = list()
-SWITCHES = list()
-
-BACKGROUND_HOSTS = list()
-TEST_SWITCHES = list()
-
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -78,7 +72,6 @@ class IDSTestFramework(Topo):
         self.ext_mac_ip_dict = None
 
         self.main_switch = None
-        self.int_routers = dict()
         self.ext_routers = dict()
         self.int_hosts = list()
         self.ext_hosts = list()
@@ -124,9 +117,9 @@ class IDSTestFramework(Topo):
             self.int_topo_class = int_topo
 
             try:
-                hosts, switches, routers = int_topo.create_topo(
-                    self, main_switch, mac_ip_set)
-                self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
+                hosts, switches = int_topo.create_topo(self, main_switch,
+                                                       mac_ip_set)
+                self.int_hosts, self.int_switches = hosts, switches
             except TypeError as e:
                 traceback.print_exc()
                 print '%s must have create_topo(topo, mac_ip_set) method' % topo_name
@@ -134,7 +127,6 @@ class IDSTestFramework(Topo):
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
         print 'SWITCHES: %s\n' % str(self.int_switches)
-        print 'ROUTERS: %s\n' % str(self.int_routers)
 
     # Generate test network
     def create_external_network(self,
@@ -199,7 +191,7 @@ class IDSTestFramework(Topo):
 
             try:
                 print 'Executing %s' % test_name
-                self.generate_background_traffic(BACKGROUND_HOSTS, targets,
+                self.generate_background_traffic(self.ext_hosts, targets,
                                                  8000, 'sample1.txt')
                 # test_class().run_test(targets, BACKGROUND_HOSTS)
             except TypeError:
@@ -222,7 +214,7 @@ class IDSTestFramework(Topo):
 
         return targets_arr
 
-    def log_attack_hosts(self):
+    def log_attack_hosts(self, net):
         attack_file = open(ATTACK_HOSTS_FILE, 'w+')
         attack_hosts_arr = list()
 
@@ -316,18 +308,18 @@ def main():
     # int_hosts = [net.get(host) for host in ids_test.int_hosts]
     # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
 
-    int_routers = [
-        net.get(router.name)
-        for key, router in ids_test.int_routers.iteritems()
-    ]
+    # int_routers = [
+    #     net.get(router.name)
+    #     for key, router in ids_test.int_routers.iteritems()
+    # ]
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
-    ids_test.int_topo_class.configure_routers(int_routers,
-                                              ids_test.ext_routers)
+    # ids_test.int_topo_class.configure_routers(int_routers,
+    #                                           ids_test.ext_routers)
     ids_test.ext_topo_class.configure_routers(ext_routers,
-                                              ids_test.int_routers)
+                                              {})
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
