@@ -27,6 +27,7 @@ class DistributedTopo(object):
         self.hosts = list()
         self.switches = dict()
         self.mac_ip_list = None
+        self.ext_router_ip = '192.168.20.1'
 
     def create_topo(self, topo, main_switch, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
@@ -49,7 +50,7 @@ class DistributedTopo(object):
                 ip=host_ip,
                 mac=mac,
                 defaultRoute='via %s' %
-                router.ip)  # TODO: Change default route
+                self.ext_router_ip)  #w TODO: Change default route
             switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)

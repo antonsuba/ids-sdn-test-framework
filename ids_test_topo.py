@@ -59,7 +59,7 @@ SWITCHES = list()
 BACKGROUND_HOSTS = list()
 TEST_SWITCHES = list()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
+MAC_IP_FILE = 'config/mac_ip.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -141,6 +141,8 @@ class IDSTestFramework(Topo):
                                 package=external_network):
         "Module loader for external network generator"
 
+        offset = len(self.int_switches)
+
         for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
             module = importer.find_module(modname).load_module(modname)
@@ -151,7 +153,7 @@ class IDSTestFramework(Topo):
 
             try:
                 hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set)
+                    self, main_switch, ext_mac_set, offset)
                 self.ext_hosts, self.ext_switches, self.ext_routers = hosts, switches, routers
             except TypeError:
                 traceback.print_exc()
@@ -312,18 +314,18 @@ def main():
     # int_hosts = [net.get(host) for host in ids_test.int_hosts]
     # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
 
-    int_routers = [
-        net.get(router.name)
-        for key, router in ids_test.int_routers.iteritems()
-    ]
+    # int_routers = [
+    #     net.get(router.name)
+    #     for key, router in ids_test.int_routers.iteritems()
+    # ]
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
-    ids_test.int_topo_class.configure_routers(int_routers,
-                                              ids_test.ext_routers)
+    # ids_test.int_topo_class.configure_routers(int_routers,
+    #                                           ids_test.ext_routers)
     ids_test.ext_topo_class.configure_routers(ext_routers,
-                                              ids_test.int_routers)
+                                              {})
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)

@@ -25,11 +25,13 @@ class ExternalTopo(object):
         self.hosts = list()
         self.switches = dict()
         self.routers = dict()
+        self.offset = None
         self.mac_ip_dict = None
 
-    def create_topo(self, topo, main_switch, mac_ip_dict):
+    def create_topo(self, topo, main_switch, mac_ip_dict, offset):
         "Required method, called by main framework class. Generates network topology."
 
+        self.offset = offset
         self.mac_ip_dict = mac_ip_dict
 
         mac_ip_counter = 0
@@ -53,11 +55,11 @@ class ExternalTopo(object):
 
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost(
-                'h%s' % str(mac_ip_counter),
+                'h%s' % str(mac_ip_counter + offset),
                 ip=host_ip,
                 mac=mac,
                 defaultRoute='via %s' % router.ip)
-            switch_num = len(self.switches) + 1
+            switch_num = len(self.switches) + offset + 1
             switch = topo.addSwitch('s%i' % switch_num)
 
             topo.addLink(host, switch)
@@ -111,13 +113,14 @@ class ExternalTopo(object):
 
             topo.addLink(router_name, switch)
             topo.addLink(
-                router_name, main_switch, params1={'ip': link_ip + '/24'})
+                router_name, main_switch, params1={'ip': link_ip + '/16'})
 
         return router
 
     def generate_ip_aliases(self, routers, hosts):
         "Generate IP aliases for IPs with same MAC"
 
+        offset = self.offset
         mac_ip_dict = self.mac_ip_dict
 
         host_num = 0
@@ -149,7 +152,7 @@ class ExternalTopo(object):
             for i in range(0, len(ip_list) - 1):
                 ip = ip_list[i + 1]
                 info(
-                    host.cmd('ifconfig h%i-eth0:%i %s up' % (host_num, i, ip)))
+                    host.cmd('ifconfig h%i-eth0:%i %s up' % (host_num + offset, i, ip)))
                 # info(host.cmd('ip route del '))
 
             host_num += 1
