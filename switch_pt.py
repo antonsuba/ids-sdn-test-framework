@@ -62,19 +62,19 @@ class Switch(object):
 
     # Parse packet info to gain an idea of what is happening
     # if controller receives packet
-        if packet.type == pkt.ethernet.IP_TYPE:
-            ip_packet = packet.payload
-            log.info("IP Packet detected")
-            log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
-            log.info("Source IP: %s" % (ip_packet.srcip))
-            log.info("Destination IP: %s" % (ip_packet.dstip))
+        # if packet.type == pkt.ethernet.IP_TYPE:
+            # ip_packet = packet.payload
+            # log.info("IP Packet detected")
+            # log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
+            # log.info("Source IP: %s" % (ip_packet.srcip))
+            # log.info("Destination IP: %s" % (ip_packet.dstip))
 
-        if packet.type == pkt.ethernet.ARP_TYPE:
-            arp_packet = packet.payload
-            log.info("ARP Packet detected")
-            log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
-            log.info("Source MAC: %s" % (arp_packet.hwsrc))
-            log.info("Destination MAC: %s" % (arp_packet.hwdst))
+        # if packet.type == pkt.ethernet.ARP_TYPE:
+            # arp_packet = packet.payload
+            # log.info("ARP Packet detected")
+            # log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
+            # log.info("Source MAC: %s" % (arp_packet.hwsrc))
+            # log.info("Destination MAC: %s" % (arp_packet.hwdst))
 
         # Learn the port for the source MAC
         # log.info('Packet src: %s' % packet.src)
