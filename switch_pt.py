@@ -5,137 +5,175 @@ import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 
 log = core.getLogger()
-#The following maps are used by the packet parser
-opcode_map = {1:'REQUEST', 2:'REPLY', 3:'REV_REQUEST', 4:'REV_REPLY'}
-ipv4_protocols = {4:'IPv4', 1:'ICMP_PROTOCOL', 6:'TCP_PROTOCOL', 17:'UDP_PROTOCOL', 2:'IGMP_PROTOCOL'}
+# The following maps are used by the packet parser
+opcode_map = {1: 'REQUEST', 2: 'REPLY', 3: 'REV_REQUEST', 4: 'REV_REPLY'}
+ipv4_protocols = {
+    4: 'IPv4',
+    1: 'ICMP_PROTOCOL',
+    6: 'TCP_PROTOCOL',
+    17: 'UDP_PROTOCOL',
+    2: 'IGMP_PROTOCOL'
+}
 
-class Switch (object):
+switch_num = -1
+global_mac_to_port = {}
 
-  def __init__ (self, connection):
-    # Keep track of the connection to the switch so that we can
-    # send it messages!
-    self.connection = connection
 
-    # This binds our PacketIn event listener
-    connection.addListeners(self)
+class Switch(object):
+    def __init__(self, connection, dpid):
+        # Keep track of the connection to the switch so that we can
+        # send it messages!
+        self.connection = connection
 
-    # Use this table to keep track of which ethernet address is on
-    # which switch port (keys are MACs, values are ports).
-    self.mac_to_port = {}
+        # This binds our PacketIn event listener
+        connection.addListeners(self)
 
-    log.info("Switch Active")
+        self.number = dpid
 
-  def resend_packet (self, packet_in, out_port):
-    """
+        # Use this table to keep track of which ethernet address is on
+        # which switch port (keys are MACs, values are ports).
+        self.mac_to_port = {}
+
+        log.info("Switch Active")
+
+    def resend_packet(self, packet_in, out_port):
+        """
     Instructs the switch to resend a packet that it had sent to us.
     "packet_in" is the ofp_packet_in object the switch had sent to the
     controller due to a table-miss.
     """
-    msg = of.ofp_packet_out()
-    msg.data = packet_in
+        msg = of.ofp_packet_out()
+        msg.data = packet_in
 
-    # Add an action to send to the specified port
-    action = of.ofp_action_output(port = out_port)
-    msg.actions.append(action)
+        # Add an action to send to the specified port
+        action = of.ofp_action_output(port=out_port)
+        msg.actions.append(action)
 
-    # Send message to switch
-    self.connection.send(msg)
+        # Send message to switch
+        self.connection.send(msg)
 
-  def switchImplementation (self, packet, packet_in):
-    """
+    def switchImplementation(self, packet, packet_in):
+        """
     Implement switch-like behavior.
     """
 
-    #Parse packet info to gain an idea of what is happening
-    #if controller receives packet
-    if packet.type == pkt.ethernet.IP_TYPE:
-      ip_packet = packet.payload
-      # log.info("IP Packet detected")
-      # log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
-      # log.info("Source IP: %s" % (ip_packet.srcip))
-      # log.info("Destination IP: %s" % (ip_packet.dstip))
+    # log.info('Switch Num: %i' % self.number)
+    # log.info('Packet: %s' % packet)
 
-    if packet.type == pkt.ethernet.ARP_TYPE:
-      arp_packet = packet.payload
-      # log.info("ARP Packet detected")
-      # log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
-      # log.info("Source MAC: %s" % (arp_packet.hwsrc))
-      # log.info("Destination MAC: %s" % (arp_packet.hwdst))
+    # Parse packet info to gain an idea of what is happening
+    # if controller receives packet
+        # if packet.type == pkt.ethernet.IP_TYPE:
+            # ip_packet = packet.payload
+            # log.info("IP Packet detected")
+            # log.info("IP protocol: %s" % (ipv4_protocols[ip_packet.protocol]))
+            # log.info("Source IP: %s" % (ip_packet.srcip))
+            # log.info("Destination IP: %s" % (ip_packet.dstip))
 
-    # Learn the port for the source MAC
-    self.mac_to_port[packet.src] = packet_in.in_port
-    src_port = packet_in.in_port
+        # if packet.type == pkt.ethernet.ARP_TYPE:
+            # arp_packet = packet.payload
+            # log.info("ARP Packet detected")
+            # log.info("ARP opcode: %s" % (opcode_map[arp_packet.opcode]))
+            # log.info("Source MAC: %s" % (arp_packet.hwsrc))
+            # log.info("Destination MAC: %s" % (arp_packet.hwdst))
 
-    log.info('Packet: %s' % packet)
-    log.info('Packet src: %s' % packet.src)
-    log.info('Packet src_port: %s' % src_port)
-    log.info('Packet dst: %s' % packet.dst)
-    
-    if packet.dst in self.mac_to_port:
-        dst_port = self.mac_to_port[packet.dst]
+        # Learn the port for the source MAC
+        # log.info('Packet src: %s' % packet.src)
+        self.mac_to_port[packet.src] = packet_in.in_port
+        try:
+            switch_mac_port = global_mac_to_port[self.number]
+            switch_mac_port[packet.src] = packet_in.in_port
+        except KeyError:
+            global_mac_to_port[self.number] = {packet.src: packet_in.in_port}
 
-        log.debug("Installing %s.%i -> %s.%i" % 
-                  (packet.src, src_port, packet.dst, dst_port))
-        msg = of.ofp_flow_mod()
-        msg.match = of.ofp_match.from_packet(packet)
-        msg.idle_timeout = 10
-        msg.hard_timeout = 30
-        msg.actions.append(of.ofp_action_output(port = dst_port))
-        self.connection.send(msg)
-        self.resend_packet(packet_in, dst_port)
-    else:
-      # Flood the packet out everything but the input port
-      # This part looks familiar, right?
-      self.resend_packet(packet_in, of.OFPP_ALL)
+        src_port = packet_in.in_port
 
-  def _handle_PacketIn (self, event):
-    """
+        # log.info('Packet In: %s' % packet_in)
+        # log.info('Packet src: %s' % packet.src)
+        # log.info('Packet src_port: %s' % src_port)
+        # log.info('Packet dst: %s' % packet.dst)
+        # log.info('Switch mac_to_port: %s' % str(global_mac_to_port))
+        # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
+
+        if packet.dst in self.mac_to_port:
+            dst_port = self.mac_to_port[packet.dst]
+
+            log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
+                                                    packet.dst, dst_port))
+            msg = of.ofp_flow_mod()
+            msg.match = of.ofp_match.from_packet(packet)
+            msg.idle_timeout = 1
+            msg.hard_timeout = 3
+            msg.actions.append(of.ofp_action_output(port=dst_port))
+            self.connection.send(msg)
+            self.resend_packet(packet_in, dst_port)
+        else:
+            # Flood the packet out everything but the input port
+            # This part looks familiar, right?
+            log.info('Resend Packet')
+            self.resend_packet(packet_in, of.OFPP_ALL)
+
+    def _handle_PacketIn(self, event):
+        """
     Handles packet in messages from the switch.
     """
 
-    packet = event.parsed # This is the parsed packet data.
-    if not packet.parsed:
-      log.warning("Ignoring incomplete packet")
-      return
+        packet = event.parsed  # This is the parsed packet data.
+        if not packet.parsed:
+            log.warning("Ignoring incomplete packet")
+            return
 
-    packet_in = event.ofp # The actual ofp_packet_in message.
+        packet_in = event.ofp  # The actual ofp_packet_in message.
 
-    self.switchImplementation(packet, packet_in)
+        ip = packet.find('ipv4')
+        log.info(ip)
 
-  #Used to construct and send an IP packet
-  #This is primarily used as a secondary test option aside from ping
-  #Could also have applications for multi-switch topology testing
-  def send_IP_packet(self, src_ip, dst_ip):
-    ip4_Packet = pkt.ipv4()
-    ip4_Packet.srcip = IPAddr(src_ip)
-    ip4_Packet.dstip = IPAddr(dst_ip)
-    ether = pkt.ethernet()
-    ether.type = pkt.ethernet.IP_TYPE
-    ether.srcip = IPAddr(src_ip)
-    ether.dstip = IPAddr(dst_ip)
-    ether.payload = ip4_Packet
-    msg = of.ofp_packet_out()
-    msg.data = ether
-    msg.actions.append(of.ofp_action_output(port = of.OFPP_ALL))
-    self.connection.send(msg)
+        self.switchImplementation(packet, packet_in)
 
-  def returnDPID(self):
-    dpid = dpidToStr(self.connection.dpid)
-    log.debug("DPID: %s" % (dpid))
+    # Used to construct and send an IP packet
+    # This is primarily used as a secondary test option aside from ping
+    # Could also have applications for multi-switch topology testing
+    def send_IP_packet(self, src_ip, dst_ip):
+        ip4_Packet = pkt.ipv4()
+        ip4_Packet.srcip = IPAddr(src_ip)
+        ip4_Packet.dstip = IPAddr(dst_ip)
+        ether = pkt.ethernet()
+        ether.type = pkt.ethernet.IP_TYPE
+        ether.srcip = IPAddr(src_ip)
+        ether.dstip = IPAddr(dst_ip)
+        ether.payload = ip4_Packet
+        msg = of.ofp_packet_out()
+        msg.data = ether
+        msg.actions.append(of.ofp_action_output(port=of.OFPP_ALL))
+        self.connection.send(msg)
 
-  def get_mac_to_port(self):
-    return self.get_mac_to_port
+    def returnDPID(self):
+        dpid = dpidToStr(self.connection.dpid)
+        log.debug("DPID: %s" % (dpid))
 
-def launch ():
-  """
+    @staticmethod
+    def get_mac_to_port(ids_num):
+        # print str(global_mac_to_port)
+        mac_to_port = {}
+        try:
+            mac_to_port = global_mac_to_port[ids_num]
+        except KeyError:
+            log.info('Switch#%i not in global_mac_to_port' % ids_num)
+        return mac_to_port
+
+
+def launch():
+    """
   Starts the component
   """
-  def start_switch (event):
-    log.debug("Controlling %s" % (event.connection,))
-    switch = Switch(event.connection)
-    core.Interactive.variables['switch'] = switch
 
-    if not core.hasComponent(switch):
-      core.register('switch_pt', switch)
+    def start_switch(event):
+        global switch_num
+        switch_num += 1
+        log.debug("Controlling %s" % (event.connection, ))
+        switch = Switch(event.connection, event.dpid)
+        core.Interactive.variables['switch'] = switch
 
-  core.openflow.addListenerByName("ConnectionUp", start_switch)
+        # if not core.hasComponent(switch):
+        #   core.register('switch_pt', switch)
+
+    core.openflow.addListenerByName('ConnectionUp', start_switch)

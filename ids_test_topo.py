@@ -7,15 +7,16 @@ import argparse
 import sys
 import inspect
 import pkgutil
-import string
-import csv
 import re
+import traceback
 from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import RemoteController
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
+from mininet.topo import Topo
+from mininet.node import Node
 import internal_network
 import external_network
 import test_cases
@@ -52,260 +53,283 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-net = Mininet(controller=RemoteController, link=TCLink)
-
-HOSTS = list()
-SWITCHES = list()
-ROUTERS = list()
-
-BACKGROUND_HOSTS = list()
-TEST_SWITCHES = list()
-
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
 
-# Generate internal network
-def create_network(mac_ip_set, package=internal_network):
-    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+class IDSTestFramework(Topo):
+    "IDS Testing Framework Main Class"
 
-        module = importer.find_module(modname).load_module(modname)
-        topo_name, topo_class = load_class(module)
+    def __init__(self):
+        print 'IDS Testing Started'
 
-        try:
-            topo_class().create_topo(mac_ip_set, net, SWITCHES, HOSTS)
-        except TypeError:
-            print '%s must have create_topo(n, Mininet, switches, hosts) method' % topo_name
+        self.int_topo_class = None
+        self.ext_topo_class = None
 
-    print '\n%s generated with:\n' % topo_name
-    print 'HOSTS: %s' % str(HOSTS)
-    print 'SWITCHES: %s\n' % str(SWITCHES)
+        self.int_mac_ip = None
+        self.ext_mac_ip = None
+        self.ext_mac_ip_dict = None
 
+        self.main_switch = None
+        self.ext_routers = dict()
+        self.int_hosts = list()
+        self.ext_hosts = list()
+        self.int_switches = dict()
+        self.ext_switches = dict()
 
-# Generate test network
-def create_background_network(ext_mac_list, package=external_network):
-    offset = len(SWITCHES)
+        super(IDSTestFramework, self).__init__()
 
-    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+    def build(self, **_opts):
+        "Build hook for Topo class"
 
-        module = importer.find_module(modname).load_module(modname)
-        topo_name, topo_class = load_class(module)
+        # Get IP and MAC address data
+        mac_ip_set = self.read_mac_ip_file(MAC_IP_FILE)
+        self.int_mac_ip, self.ext_mac_ip = self.split_mac_ip(
+            mac_ip_set, '^192.168')
+        self.ext_mac_ip_dict = self.aggregate_mac_ip(self.ext_mac_ip)
 
-        try:
-            topo_class().create_topo(net, ext_mac_list, offset, SWITCHES,
-                                     BACKGROUND_HOSTS, TEST_SWITCHES)
-        except TypeError:
-            print '%s must have create_topo(Mininet, mac_ip_set, offset, switches, test_hosts, test_switches) method' % topo_name
+        print 'Int net length: %i' % len(self.int_mac_ip)
+        print 'Ext net length: %i' % len(self.ext_mac_ip_dict)
 
-    print '\n%s generated with:\n' % topo_name
-    print 'HOSTS: %s' % str(BACKGROUND_HOSTS)
-    print 'SWITCHES: %s\n' % str(TEST_SWITCHES)
+        # Create network topology
+        self.__create_main_switch()
+        self.create_internal_network(self.main_switch, self.int_mac_ip)
+        self.create_external_network(self.main_switch, self.ext_mac_ip_dict)
 
+    def __create_main_switch(self):
+        main_switch = self.addSwitch('s0')
+        self.main_switch = main_switch
 
-def create_router():
-    ROUTERS.append(net.addHost('r1', mac='00:00:00:00:01:00'))
-    net.addLink(ROUTERS[0], SWITCHES[0])
+    # Generate internal network
+    def create_internal_network(self,
+                                main_switch,
+                                mac_ip_set,
+                                package=internal_network):
+        "Module loader for internal network generator"
 
+        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
-def configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict=None):
-    subnets = set()
+            module = importer.find_module(modname).load_module(modname)
+            topo_name, topo_class = self.__load_class(module)
 
-    mac_ip = int_mac_ip + ext_mac_ip
+            int_topo = topo_class()
+            self.int_topo_class = int_topo
 
-    r1 = ROUTERS[0]
-    r1.cmd('ifconfig r1-eth0 0')
+            try:
+                hosts, switches = int_topo.create_topo(self, main_switch,
+                                                       mac_ip_set)
+                self.int_hosts, self.int_switches = hosts, switches
+            except TypeError as e:
+                traceback.print_exc()
+                print '%s must have create_topo(topo, mac_ip_set) method' % topo_name
 
-    for pair in mac_ip:
-        subnet = str(pair[1].rsplit('.', 1)[:-1]) + '0/24'
-        if subnet not in subnets:
-            r1.cmd('ip addr add %s brd + dev r1-eth0' % subnet)
+        print '\n%s generated with:\n' % topo_name
+        print 'HOSTS: %s' % str(self.int_hosts)
+        print 'SWITCHES: %s\n' % str(self.int_switches)
 
-    r1.cmd("echo 1 > /proc/sys/net/ipv4/ip_forward")
+    # Generate test network
+    def create_external_network(self,
+                                main_switch,
+                                ext_mac_set,
+                                package=external_network):
+        "Module loader for external network generator"
 
-    for i in range(0, len(int_mac_ip)):
-        HOSTS[i].cmd('ip route add default via %s' % int_mac_ip[i][1])
+        offset = len(self.int_switches)
 
-    try:
-        host_num = 0
+        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
 
-        for mac, ip_set in ext_mac_ip_dict.iteritems():
-            ip_list = list(ip_set)
-            for ip in ip_list:
-                BACKGROUND_HOSTS[host_num].cmd(
-                    'ip route add default via %s' % ip)
+            module = importer.find_module(modname).load_module(modname)
+            topo_name, topo_class = self.__load_class(module)
 
-            host_num += 1
+            ext_topo = topo_class()
+            self.ext_topo_class = ext_topo
 
-    except AttributeError:
-        for i in range(0, len(ext_mac_ip)):
-            BACKGROUND_HOSTS[i].cmd(
-                'ip route add default via %s' % ext_mac_ip[i][1])
+            try:
+                hosts, switches, routers = ext_topo.create_topo(
+                    self, main_switch, ext_mac_set, offset)
+                self.ext_hosts, self.ext_switches, self.ext_routers = hosts, switches, routers
+            except TypeError:
+                traceback.print_exc()
+                print '%s must have create_topo(Mininet, mac_ip_set, offset, switches, test_hosts, test_switches) method' % topo_name
 
-    s1 = SWITCHES[0]
-    s1.cmd("ovs-ofctl add-flow s1 priority=1,arp,actions=flood")
-    s1.cmd(
-        "ovs-ofctl add-flow s1 priority=65535,ip,dl_dst=00:00:00:00:01:00,actions=output:1"
-    )
+        print '\n%s generated with:\n' % topo_name
+        print 'HOSTS: %s' % str(self.ext_hosts)
+        print 'SWITCHES: %s\n' % str(self.ext_switches)
+        print 'ROUTERS: %s\n' % str(self.ext_routers)
 
-    for i in range(0, len(subnets)):
-        subnet = subnets.pop()
-        s1.cmd(
-            "ovs-ofctl add-flow s1 priority=10,ip,nw_dst=%s,actions=output:%i"
-            % (subnet, i + 2))
+    # def generate_ip_aliases(self, hosts):
+    #     print 'Generate Aliases'
+    #     offset = len(self.int_switches)
+    #     self.ext_topo_class().generate_ip_aliases(hosts, self.ext_mac_ip_dict, offset)
 
+    # def configure_routers(net):
+    #     "Set subnet to interface routing of internal hosts"
 
-def start_internal_servers(directory, port):
-    print '\nStarting internal network hosts servers:'
-    for host in HOSTS:
-        host.cmd('cd %s' % directory)
-        host.cmd('python -m SimpleHTTPServer %s &' % str(port))
-        print '%s server started' % str(host)
+    #     routers = dict(int_routers, **ext_routers)
 
+    #     for key in routers:
+    #         router_name = routers[key].name
+    #         for network_addr, dest_router in routers.iteritems():
+    #             info()
 
-# Run specified test (Defaults to: all tests)
-def exec_test_cases(test, targets, package=test_cases):
-    for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
-        if modname in test_cases.EXCLUDE:
-            continue
+    def start_internal_servers(self, directory, port):
+        print '\nStarting internal network hosts servers:'
+        for host in self.ext_hosts:
+            host.cmd('cd %s' % directory)
+            host.cmd('python -m SimpleHTTPServer %s &' % str(port))
+            print '%s server started' % str(host)
 
-        module = importer.find_module(modname).load_module(modname)
-        test_name, test_class = load_class(module)
+    # Run specified test (Defaults to: all tests)
+    def exec_test_cases(self, test, targets, package=test_cases):
+        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+            if modname in test_cases.EXCLUDE:
+                continue
 
-        try:
-            print 'Executing %s' % test_name
-            generate_background_traffic(BACKGROUND_HOSTS, targets, 8000,
-                                        'sample1.txt')
-            # test_class().run_test(targets, BACKGROUND_HOSTS)
-        except TypeError:
-            print 'Error. %s must have run_test(targets) method' % (test_name)
+            module = importer.find_module(modname).load_module(modname)
+            test_name, test_class = self.__load_class(module)
 
+            try:
+                print 'Executing %s' % test_name
+                self.generate_background_traffic(self.ext_hosts, targets,
+                                                 8000, 'sample1.txt')
+                # test_class().run_test(targets, BACKGROUND_HOSTS)
+            except TypeError:
+                print 'Error. %s must have run_test(targets) method' % (
+                    test_name)
 
-def log_target_hosts():
-    targets_file = open(TARGET_HOSTS_FILE, 'w+')
-    targets_arr = list()
+    def log_target_hosts(self, net):
+        targets_file = open(TARGET_HOSTS_FILE, 'w+')
+        targets_arr = list()
 
-    for i in range(0, len(HOSTS)):
-        host = net.get('h' + str(i))
-        ipaddr = host.cmd('hostname -I')
+        for i in range(len(self.int_hosts)):
+            host_name = 'h%i' % i
+            host = net.get(host_name)
+            ipaddr = host.cmd('hostname -I')
 
-        targets_arr.append(ipaddr.rstrip())
-        targets_file.write('%i_%s' % (i + 1, ipaddr))
+            switch_num = int(self.int_switches[host_name][1:])
 
-    return targets_arr
+            targets_arr.append(ipaddr.rstrip())
+            targets_file.write('%i_%i_%s' % (i, switch_num, ipaddr))
 
+        return targets_arr
 
-def log_attack_hosts():
-    attack_file = open(ATTACK_HOSTS_FILE, 'w+')
-    attack_hosts_arr = list()
+    def log_attack_hosts(self, net):
+        attack_file = open(ATTACK_HOSTS_FILE, 'w+')
+        attack_hosts_arr = list()
 
-    offset = len(SWITCHES)
-    for i in range(offset, len(BACKGROUND_HOSTS) + offset - 1):
-        host = net.get('h' + str(i))
-        ipaddr = host.cmd('hostname -I')
+        offset = len(self.int_switches) + len(self.ext_switches)
+        for i in range(offset, len(self.ext_hosts) + offset - 1):
+            host = net.get('h' + str(i))
+            switch = net.get('s' + str(i))
+            switch.attached
+            ipaddr = host.cmd('hostname -I')
 
-        attack_hosts_arr.append(ipaddr.rstrip())
-        attack_file.write('%s' % (ipaddr))
+            attack_hosts_arr.append(ipaddr.rstrip())
+            attack_file.write('%s' % (ipaddr))
 
-    return attack_hosts_arr
+        return attack_hosts_arr
 
+    def generate_background_traffic(self, hosts, target_hosts, port, filename):
+        for i in range(0, len(target_hosts)):
+            ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i],
+                                                          port, filename)
+            print 'Executing ab command: %s' % ab_cmd
+            info(hosts[i].cmd(ab_cmd))
 
-def generate_background_traffic(hosts, target_hosts, port, filename):
-    for i in range(0, len(target_hosts)):
-        ab_cmd = 'ab -c 1 -n 10 http://%s:%s/%s &' % (target_hosts[i], port,
-                                                      filename)
-        print 'Executing ab command: %s' % ab_cmd
-        result = hosts[i].cmd(ab_cmd)
+    # Load class given a module
+    def __load_class(self, module):
+        for name, obj in inspect.getmembers(module, inspect.isclass):
+            return name, obj
 
+    # Read file then append to list
+    def read_data_file(self, filename):
+        data_list = list()
 
-# Load class given a module
-def load_class(module):
-    for name, obj in inspect.getmembers(module, inspect.isclass):
-        return name, obj
+        f = open(filename, 'r')
+        for line in f:
+            data_list.append(line.rstrip())
+        f.close()
 
+        return data_list
 
-# Read file then append to list
-def read_data_file(filename):
-    data_list = list()
+    # Generate set of MAC - IP pairs from file
+    def read_mac_ip_file(self, filename):
 
-    f = open(filename, 'r')
-    for line in f:
-        data_list.append(line.rstrip())
-    f.close()
+        # ip_tracker = list()
+        mac_ip_set = set()
 
-    return data_list
+        with open(filename, 'r') as f:
+            p = '\w+:\w+:\w+:\w+:\w+:\w+\s+\d+\.\d+\.\d+\.\d+'
+            pairs = re.findall(p, f.read())
+            for pair in pairs:
+                mac, ip = pair.split()
+                # if ip in ip_tracker:
+                # continue
 
+                mac_ip_set.add((mac, ip))
+                # ip_tracker.append(ip)
 
-# Generate set of MAC - IP pairs from file
-def read_mac_ip_file(filename):
+        return mac_ip_set
 
-    mac_ip_set = set()
+    # Split MAC - IP set
+    def split_mac_ip(self, mac_ip_set, int_net_ip_pattern):
+        int_mac_ip = list()
+        ext_mac_ip = list()
 
-    with open(filename, 'r') as f:
-        p = '\w+:\w+:\w+:\w+:\w+:\w+\s\d+\.\d+\.\d+\.\d+'
-        pairs = re.findall(p, f.read())
-        for pair in pairs:
-            mac, ip = pair.split()
-            mac_ip_set.add((mac, ip))
+        for pair in mac_ip_set:
+            if bool(re.match(int_net_ip_pattern, pair[1])):
+                int_mac_ip.append(pair)
+            else:
+                ext_mac_ip.append(pair)
 
-    return mac_ip_set
+        return int_mac_ip, ext_mac_ip
 
+    # Generate dictionary with MAC as key and set of IP as value
+    def aggregate_mac_ip(self, mac_ip_set):
+        mac_ips = defaultdict(set)
 
-# Split MAC - IP set
-def split_mac_ip(mac_ip_set, int_net_ip_pattern):
-    int_mac_ip = list()
-    ext_mac_ip = list()
+        for pair in mac_ip_set:
+            mac_address, ip = pair[0], pair[1]
+            mac_ips[mac_address] |= set([ip])
 
-    for pair in mac_ip_set:
-        if int_net_ip_pattern in pair[1]:
-            int_mac_ip.append(pair)
-        else:
-            ext_mac_ip.append(pair)
-
-    return int_mac_ip, ext_mac_ip
-
-
-# Generate dictionary with MAC as key and set of IP as value
-def aggregate_mac_ip(mac_ip_set):
-    mac_ips = defaultdict(set)
-
-    for pair in mac_ip_set:
-        mac_address, ip = pair[0], pair[1]
-        mac_ips[mac_address] |= set([ip])
-
-    return mac_ips
+        return mac_ips
 
 
 def main():
     setLogLevel('info')
 
-    # Create remote controller
-    c0 = net.addController()
-
-    # Get IP and MAC address data
-    mac_ip_set = read_mac_ip_file(MAC_IP_FILE)
-    int_mac_ip, ext_mac_ip = split_mac_ip(mac_ip_set, '192.168')
-    ext_mac_ip_dict = aggregate_mac_ip(ext_mac_ip)
-
-    print 'Int net length: %i' % len(int_mac_ip)
-    print 'Ext net length: %i' % len(ext_mac_ip_dict)
-
-    #Create network topology
-    create_network(int_mac_ip)
-    create_background_network(ext_mac_ip_dict)
-    create_router()
+    # Instantiate IDS Test Framework
+    ids_test = IDSTestFramework()
+    net = Mininet(topo=ids_test, controller=RemoteController)
 
     net.start()
 
-    # Link subnets to router
-    configure_router(int_mac_ip, ext_mac_ip, ext_mac_ip_dict)
+    # int_hosts = [net.get(host) for host in ids_test.int_hosts]
+    # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
+
+    # int_routers = [
+    #     net.get(router.name)
+    #     for key, router in ids_test.int_routers.iteritems()
+    # ]
+    ext_routers = [
+        net.get(router.name)
+        for key, router in ids_test.ext_routers.iteritems()
+    ]
+    # ids_test.int_topo_class.configure_routers(int_routers,
+    #                                           ids_test.ext_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers,
+                                              {})
+
+    ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
+    ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
     # Start servers of internal network hosts
     # start_internal_servers('dummy_files', 8000)
 
     # Execute framework commands
     # log_attack_hosts()
-    targets_arr = log_target_hosts()
+    targets_arr = ids_test.log_target_hosts(net)
     # exec_test_cases(args.test, targets_arr)
 
     CLI(net)

@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = '../training_data'
+DATA_PATH = '../training_data/IDS2012'
 
 
 def load_data_set(data_path):
@@ -36,14 +36,12 @@ def load_data_set(data_path):
                 del item['sourceTCPFlagsDescription']
                 del item['destinationTCPFlagsDescription']
 
-                # Count total number of IP address occurences
+                # Count total number of IP address and port occurences
                 ip_counts['source'][item['source']] += 1
                 ip_counts['destination'][item['destination']] += 1
+                port_counts['source'][item['sourcePort']] += 1
+                port_counts['destination'][item['destinationPort']] += 1
 
-                # Convert into more appropriate features
-                item['direction'] = convert_direction(item['direction'])
-                item['duration'] = calculate_duration(
-                    item.pop('startDateTime'), item.pop('stopDateTime'))
                 item['Tag'] = convert_class(item['Tag'])
 
                 # Delete features for prototype
@@ -52,7 +50,8 @@ def load_data_set(data_path):
                 del item['totalDestinationPackets']
                 del item['totalSourcePackets']
                 del item['direction']
-                del item['duration']
+                del item['startDateTime']
+                del item['stopDateTime']
 
             dataset += temp
         finally:
@@ -67,24 +66,19 @@ def convert_class(x):
     return int(x != 'Normal')
 
 
-def convert_direction(x):
-    return int(x != 'L2R')
-
-
-def calculate_duration(start, stop):
-    dt = datetime.strptime(stop, '%Y-%m-%dT%H:%M:%S') - datetime.strptime(
-        start, '%Y-%m-%dT%H:%M:%S')
-    return dt.total_seconds()
-
-
 # Load training data
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
+port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 flows = load_data_set(DATA_PATH)
 
 for flow in flows:
     flow['source_ip_count'] = ip_counts['source'][flow.pop('source')]
     flow['destination_ip_count'] = ip_counts['destination'][flow.pop(
         'destination')]
+
+    flow['source_port_count'] = port_counts['source'][flow.pop('sourcePort')]
+    flow['destination_port_count'] = port_counts['destination'][flow.pop(
+        'destinationPort')]
 
 temp = pd.DataFrame.from_dict(flows)
 data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
