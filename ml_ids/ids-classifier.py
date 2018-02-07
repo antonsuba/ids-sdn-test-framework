@@ -37,10 +37,14 @@ def load_data_set(data_path):
                 del item['destinationTCPFlagsDescription']
 
                 # Count total number of IP address and port occurences
-                ip_counts['source'][item['source']] += 1
-                ip_counts['destination'][item['destination']] += 1
-                port_counts['source'][item['sourcePort']] += 1
-                port_counts['destination'][item['destinationPort']] += 1
+                ip_counts['source'][item['source']] += item[
+                    'totalSourcePackets']
+                ip_counts['destination'][item['destination']] += item[
+                    'totalSourcePackets']
+                port_counts['source'][item['sourcePort']] += item[
+                    'totalSourcePackets']
+                port_counts['destination'][item['destinationPort']] += item[
+                    'totalSourcePackets']
 
                 item['Tag'] = convert_class(item['Tag'])
 
@@ -48,7 +52,6 @@ def load_data_set(data_path):
                 del item['totalSourceBytes']
                 del item['totalDestinationBytes']
                 del item['totalDestinationPackets']
-                del item['totalSourcePackets']
                 del item['direction']
                 del item['startDateTime']
                 del item['stopDateTime']
