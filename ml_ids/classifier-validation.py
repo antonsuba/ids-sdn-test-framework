@@ -9,7 +9,14 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_sc
 
 DATA_PATH = '../training_data/IDS2012'
 CLASSIFIER_FILE = './adaboost-ids.pkl'
-PROTOCOLS = {'ICMP ': 0, 'IGMP ': 1, 'GRE  ': 2, 'ICMP6': 3, 'TCP  ': 4, 'UDP  ': 5}
+PROTOCOLS = {
+    'ICMP ': 0,
+    'IGMP ': 1,
+    'GRE  ': 2,
+    'ICMP6': 3,
+    'TCP  ': 4,
+    'UDP  ': 5
+}
 
 
 def load_validation_set(data_path):
@@ -20,13 +27,13 @@ def load_validation_set(data_path):
     for file in glob.glob(csv_path):
         with open(file, 'r') as csv_file:
             temp = csv.DictReader(csv_file)
-	    counter = 0.0
+            counter = 0.0
             for item in temp:
                 correctly_ordered_list = list()
-		try:
+                try:
                     classifications.append(convert_class(item['label']))
-		except:
-		    classifications.append(convert_class(item['class']))
+                except:
+                    classifications.append(convert_class(item['class']))
                 correctly_ordered_list.append(item.pop('Dst Pt'))
                 correctly_ordered_list.append(item.pop('Dst IP Addr'))
                 correctly_ordered_list.append(item.pop('Src Pt'))
@@ -39,9 +46,9 @@ def load_validation_set(data_path):
                 port_counts['source'][correctly_ordered_list[2]] += 1
                 port_counts['destination'][correctly_ordered_list[0]] += 1
                 dataset.append(correctly_ordered_list)
-		print loading[int(floor(counter % 4))], "\r",
-		counter += 0.0001
-	    print str(file), 'read'
+                print loading[int(floor(counter % 4))], "\r",
+                counter += 0.0001
+            print str(file), 'read'
     return dataset, classifications
 
 
@@ -59,11 +66,12 @@ for flow in validation_flows:
     flow[2] = port_counts['source'][flow[2]]
     flow[0] = port_counts['destination'][flow[0]]
 
-forest_clf = joblib.load(CLASSIFIER_FILE)
+clf = joblib.load(CLASSIFIER_FILE)
 # pred = clf.predict(validation_flows)
 # print 'Accuracy:', accuracy_score(labels, pred)
 
-pred = cross_val_predict(forest_clf, validation_flows, labels, cv=3, verbose=10)
+pred = cross_val_predict(
+    clf, validation_flows, labels, cv=3, verbose=10)
 
 cnf_mx = confusion_matrix(labels, pred)
 print 'Confusion Matrix:'
