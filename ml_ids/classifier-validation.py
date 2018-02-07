@@ -1,6 +1,7 @@
 import csv
 import os
 import glob
+from math import floor
 from collections import defaultdict
 from sklearn.externals import joblib
 from sklearn.model_selection import cross_val_predict
@@ -8,19 +9,24 @@ from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_sc
 
 DATA_PATH = '../training_data/IDS2012'
 CLASSIFIER_FILE = './adaboost-ids.pkl'
-PROTOCOLS = {'ICMP ': 0, 'IGMP ': 1, 'ICMP6': 3, 'TCP  ': 4, 'UDP  ': 5}
+PROTOCOLS = {'ICMP ': 0, 'IGMP ': 1, 'GRE  ': 2, 'ICMP6': 3, 'TCP  ': 4, 'UDP  ': 5}
 
 
 def load_validation_set(data_path):
     csv_path = os.path.join(data_path, '*.csv')
     dataset = []
     classifications = []
+    loading = ['|', '/', '-', "\\"]
     for file in glob.glob(csv_path):
         with open(file, 'r') as csv_file:
             temp = csv.DictReader(csv_file)
+	    counter = 0.0
             for item in temp:
                 correctly_ordered_list = list()
-                classifications.append(convert_class(item['label']))
+		try:
+                    classifications.append(convert_class(item['label']))
+		except:
+		    classifications.append(convert_class(item['class']))
                 correctly_ordered_list.append(item.pop('Dst Pt'))
                 correctly_ordered_list.append(item.pop('Dst IP Addr'))
                 correctly_ordered_list.append(item.pop('Src Pt'))
@@ -33,6 +39,9 @@ def load_validation_set(data_path):
                 port_counts['source'][correctly_ordered_list[2]] += 1
                 port_counts['destination'][correctly_ordered_list[0]] += 1
                 dataset.append(correctly_ordered_list)
+		print loading[int(floor(counter % 4))], "\r",
+		counter += 0.0001
+	    print str(file), 'read'
     return dataset, classifications
 
 
@@ -54,20 +63,20 @@ forest_clf = joblib.load(CLASSIFIER_FILE)
 # pred = clf.predict(validation_flows)
 # print 'Accuracy:', accuracy_score(labels, pred)
 
-forest_pred = cross_val_predict(forest_clf, validation_flows, labels, cv=5)
+pred = cross_val_predict(forest_clf, validation_flows, labels, cv=3, verbose=10)
 
-cnf_mx = confusion_matrix(labels, forest_pred)
+cnf_mx = confusion_matrix(labels, pred)
 print 'Confusion Matrix:'
 print cnf_mx
 
-precision = precision_score(labels, forest_pred)
+precision = precision_score(labels, pred)
 print 'Precision:'
 print precision
 
-recall = recall_score(labels, forest_pred)
+recall = recall_score(labels, pred)
 print 'Recall:'
 print recall
 
-f1 = f1_score(labels, forest_pred)
+f1 = f1_score(labels, pred)
 print 'F1 Score:'
 print f1
