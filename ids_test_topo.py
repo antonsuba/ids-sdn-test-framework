@@ -53,7 +53,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
+MAC_IP_FILE = 'config/mac_ip.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -301,7 +301,7 @@ def main():
 
     # Instantiate IDS Test Framework
     ids_test = IDSTestFramework()
-    net = Mininet(topo=ids_test, controller=RemoteController)
+    net = Mininet(topo=ids_test, controller=RemoteController, autoStaticArp=False)
 
     net.start()
 

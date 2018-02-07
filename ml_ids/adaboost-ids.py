@@ -16,7 +16,7 @@ global_black_list = list()
 PROTOCOLS = {
     pkt.ipv4.ICMP_PROTOCOL: 0,
     pkt.ipv4.IGMP_PROTOCOL: 1,
-    pkt.ipv6.ICMP6_PROTOCOL: 2,
+    pkt.ipv6.ICMP6_PROTOCOL: 3,
     pkt.ipv4.TCP_PROTOCOL: 4,
     pkt.ipv4.UDP_PROTOCOL: 5
 }
@@ -71,7 +71,6 @@ class PacketChecker(object):
 
         entry.append(dst_port)
         entry.append(self.destination_ip_count_list[dst_ip])
-        # entry.append(1)
         entry.append(packet_in.in_port)
         entry.append(self.source_ip_count_list[ip.srcip])
 
