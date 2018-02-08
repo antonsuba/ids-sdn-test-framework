@@ -56,7 +56,9 @@ def load_data_set(data_path):
                 del item['startDateTime']
                 del item['stopDateTime']
 
-            dataset += temp
+                for i in range(item.pop('totalSourcePackets')):
+                    dataset += [item.copy()]
+
         finally:
             if json_file is not None:
                 json_file.close()
