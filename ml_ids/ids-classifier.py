@@ -21,6 +21,9 @@ def load_data_set(data_path):
         filename = file.split('/')[-1].split('.')[0]
         json_file = None
         temp = None
+	
+	print filename
+
         try:
             json_file = open(file, 'r')
             temp = json.load(json_file).get('dataroot').get(filename)
@@ -89,7 +92,7 @@ temp = pd.DataFrame.from_dict(flows)
 data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
 del data['sensorInterfaceId']
 del data['startTime']
-print data
+print data.corr()['Tag'].sort_values(ascending=False)
 
 y = data['Tag'].values
 del data['Tag']
