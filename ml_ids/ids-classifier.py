@@ -21,8 +21,8 @@ def load_data_set(data_path):
         filename = file.split('/')[-1].split('.')[0]
         json_file = None
         temp = None
-	
-	print filename
+
+        print filename
 
         try:
             json_file = open(file, 'r')
