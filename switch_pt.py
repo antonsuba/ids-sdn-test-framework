@@ -97,8 +97,8 @@ class Switch(object):
         if packet.dst in self.mac_to_port:
             dst_port = self.mac_to_port[packet.dst]
 
-            log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
-                                                    packet.dst, dst_port))
+            # log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
+                                                    # packet.dst, dst_port))
             msg = of.ofp_flow_mod()
             msg.match = of.ofp_match.from_packet(packet)
             msg.idle_timeout = 1
@@ -109,7 +109,7 @@ class Switch(object):
         else:
             # Flood the packet out everything but the input port
             # This part looks familiar, right?
-            log.info('Resend Packet')
+            # log.info('Resend Packet')
             self.resend_packet(packet_in, of.OFPP_ALL)
 
     def _handle_PacketIn(self, event):
