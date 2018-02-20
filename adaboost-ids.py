@@ -105,16 +105,16 @@ class PacketChecker(object):
         self.connection.send(msg)
 
     def _handle_PacketIn(self, event):
-        log.info('IDS#%s Packet In. Checker: %s' % (self.number,
-                                                    str(self.enable_checker)))
+        # log.info('IDS#%s Packet In. Checker: %s' % (self.number,
+        #                                             str(self.enable_checker)))
 
         if self.enable_checker is True:
             packet = event.parsed
             packet_in = event.ofp
 
             self.count += 1
-            log.info('Host#%i' % self.attached_host_num)
-            log.info('Switch#%i - packet#%i' % (self.number, self.count))
+            log.info('Host#%i - %s' % (self.attached_host_num, self.attached_host))
+            # log.info('Switch#%i - packet#%i' % (self.number, self.count))
 
             ip = packet.find('ipv4')
             if ip is None:
@@ -125,7 +125,7 @@ class PacketChecker(object):
                          str(ip.srcip) + 'Destination IP:' + str(ip.dstip))
 
                 # Do nothing if packet came from host
-                log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
+                # log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
                 if self.attached_host == ip.srcip:
                     log.info('Packet from attached host\n')
                     return
@@ -146,7 +146,7 @@ class PacketChecker(object):
                 mac_to_port = Switch.get_mac_to_port(self.number)
                 # log.info('Adaboost PID: %s' % str(id(mac_to_port)))
 
-                log.info(mac_to_port)
+                # log.info(mac_to_port)
                 log.info('Packet dst: %s' % packet)
                 if packet.dst not in mac_to_port:
                     log.info('Skip packet. Not in mac_to_port')
@@ -182,6 +182,7 @@ class PacketChecker(object):
                     # Generate array for prediction then classify
                     entry = self.generate_prediction_entry(
                         ip, dst_ip, dst_port, packet, packet_in)
+                    log.info(str(entry))
                     pred = self.clf.predict(entry)
 
                     log.debug('%s - classification: %i' % (str(ip.srcip), pred))
