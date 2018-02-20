@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import glob
 import gc
+import copy
 import numpy as np
 from datetime import datetime
 from collections import defaultdict
@@ -21,12 +22,11 @@ def load_data_set(data_path):
         filename = file.split('/')[-1].split('.')[0]
         json_file = None
         temp = None
-	
-	print filename
 
         try:
             json_file = open(file, 'r')
             temp = json.load(json_file).get('dataroot').get(filename)
+            print filename
 
             # Clean dataset
             for item in temp:
@@ -59,7 +59,7 @@ def load_data_set(data_path):
                 del item['startDateTime']
                 del item['stopDateTime']
 
-                for i in range(item.pop('totalSourcePackets')):
+                for p in range(item.pop('totalSourcePackets')):
                     dataset += [item.copy()]
 
         finally:
@@ -90,8 +90,15 @@ for flow in flows:
 
 temp = pd.DataFrame.from_dict(flows)
 data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
-del data['sensorInterfaceId']
-del data['startTime']
+data = data.reindex(
+    columns=[
+        'Tag', 'destination_ip_count', 'destination_port_count',
+        'source_ip_count', 'source_port_count', 'protocol_icmp_ip',
+        'protocol_igmp', 'protocol_ip', 'protocol_ipv6icmp', 'protocol_tcp_ip',
+        'protocol_udp_ip'
+    ],
+    fill_value=0)
+print data
 print data.corr()['Tag'].sort_values(ascending=False)
 
 y = data['Tag'].values
