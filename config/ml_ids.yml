@@ -8,5 +8,6 @@ ids-classifier:
     source-port: sourcePort
     destination-port: destinationPort
     protocol: protocolName
+    source-packet-count: totalSourcePackets
     label: Tag
 ...
