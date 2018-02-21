@@ -29,7 +29,8 @@ class ExternalTopo(object):
         self.mac_ip_dict = None
 
     def create_topo(self, topo, main_switch, mac_ip_dict, offset):
-        "Required method, called by main framework class. Generates network topology."
+        "Required method, called by main framework class. Generates network" \
+            " topology."
 
         self.offset = offset
         self.mac_ip_dict = mac_ip_dict
@@ -40,9 +41,6 @@ class ExternalTopo(object):
         for mac, ip_set in mac_ip_dict.iteritems():
             ip_list = list(ip_set)
             ip = '192.168.19.' + str(mac_ip_counter + 1)
-
-            # if not self.routers:
-            #     network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 
             aliases = ip_list
             alias_set = set((alias.rsplit('.', 1)[:-1])[0] + '.' +
@@ -146,14 +144,11 @@ class ExternalTopo(object):
             ip_list = list(ip_set)
             host = hosts[host_num]
 
-            # print 'ip route add default via %s' % router_info.ip
-            # info(host.cmd('ip route add default via %s' % router_info.ip))
-
             for i in range(0, len(ip_list) - 1):
                 ip = ip_list[i + 1]
                 info(
-                    host.cmd('ifconfig h%i-eth0:%i %s up' % (host_num + offset, i, ip)))
-                # info(host.cmd('ip route del '))
+                    host.cmd('ifconfig h%i-eth0:%i %s up' % (host_num + offset,
+                                                             i, ip)))
 
             host_num += 1
 

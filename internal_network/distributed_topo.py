@@ -30,7 +30,8 @@ class DistributedTopo(object):
         self.ext_router_ip = '192.168.20.1'
 
     def create_topo(self, topo, main_switch, mac_ip_list):
-        "Required method, called by main framework class. Generates network topology."
+        "Required method, called by main framework class. Generates network" \
+            " topology."
 
         self.mac_ip_list = mac_ip_list
 
@@ -49,8 +50,7 @@ class DistributedTopo(object):
                 'h%i' % mac_ip_counter,
                 ip=host_ip,
                 mac=mac,
-                defaultRoute='via %s' %
-                self.ext_router_ip)
+                defaultRoute='via %s' % self.ext_router_ip)
             switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)
@@ -61,27 +61,4 @@ class DistributedTopo(object):
 
             mac_ip_counter += 1
 
-        # print self.switches
-
         return self.hosts, self.switches
-
-    # def configure_routers(self, routers, ext_routers_dict):
-    #     "Add routes to other routers"
-
-    #     print str(ext_routers_dict)
-    #     ext_router = ext_routers_dict.itervalues().next()
-
-    #     for router in routers:
-    #         info(
-    #             router.cmd('ip route add default via %s' % ext_router.link_ip))
-
-    #         for network_addr, dest_router in self.routers.iteritems():
-    #             if dest_router.ip == router.IP():
-    #                 continue
-
-    #             dest_ip = dest_router.link_ip
-
-    #             # print 'ip route add %s via %s' % (network_addr, dest_ip)
-    #             info(
-    #                 router.cmd('ip route add %s via %s' % (network_addr,
-    #                                                        dest_ip)))
