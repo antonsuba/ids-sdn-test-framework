@@ -5,7 +5,8 @@ from math import floor
 from collections import defaultdict
 from sklearn.externals import joblib
 from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import accuracy_score, f1_score, recall_score, precision_score, confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, recall_score,
+precision_score, confusion_matrix
 
 DATA_PATH = '../training_data/IDS2012'
 CLASSIFIER_FILE = './adaboost-ids.pkl'
@@ -70,8 +71,7 @@ clf = joblib.load(CLASSIFIER_FILE)
 # pred = clf.predict(validation_flows)
 # print 'Accuracy:', accuracy_score(labels, pred)
 
-pred = cross_val_predict(
-    clf, validation_flows, labels, cv=3, verbose=10)
+pred = cross_val_predict(clf, validation_flows, labels, cv=3, verbose=10)
 
 cnf_mx = confusion_matrix(labels, pred)
 print 'Confusion Matrix:'
