@@ -118,4 +118,5 @@ accuracy = accuracy_score(y_test, pred)
 print 'Accuracy:', accuracy
 
 # Save model
-joblib.dump(clf, 'ids-model.pkl')
+model_filename = raw_input('Save model as: ')
+joblib.dump(clf, 'ids_models/%s.pkl', model_filename)
