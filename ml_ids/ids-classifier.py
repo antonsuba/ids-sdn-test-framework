@@ -1,10 +1,13 @@
-import os
-import pandas as pd
 import json
+import csv
+import yaml
+import os
+import inspect
 import glob
 import gc
 import copy
 import numpy as np
+import pandas as pd
 from datetime import datetime
 from collections import defaultdict
 from sklearn import ensemble
@@ -12,61 +15,52 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = '../training_data/IDS2012'
+DATA_PATH = '../training_data'
+CONFIG = '../config/ml_ids.yml'
+DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 
 
 def load_data_set(data_path):
-    json_path = os.path.join(data_path, '*.json')
+
+    data_path = os.path.join(data_path, cfg['training-dataset-folder'],
+                             '*.' + cfg['training-data-filetype'])
     dataset = []
-    for file in glob.glob(json_path):
-        filename = file.split('/')[-1].split('.')[0]
-        json_file = None
+    for file in glob.glob(data_path):
+        data_file = None
         temp = None
 
-        try:
-            json_file = open(file, 'r')
-            temp = json.load(json_file).get('dataroot').get(filename)
-            print filename
+        with open(file, 'r') as data_file:
+            if cfg['training-data-filetype'] == 'json':
+                temp = json.load(data_file)
+            else:
+                temp = csv.DictReader(data_file)
+            print 'Reading file:', file.split('/')[-1]
 
             # Clean dataset
             for item in temp:
                 # Delete unnecessary features
-                del item['appName']
-                del item['sourcePayloadAsBase64']
-                del item['sourcePayloadAsUTF']
-                del item['destinationPayloadAsBase64']
-                del item['destinationPayloadAsUTF']
-                del item['sourceTCPFlagsDescription']
-                del item['destinationTCPFlagsDescription']
+                for key in item.keys():
+                    if key not in features.values():
+                        del item[key]
 
                 # Count total number of IP address and port occurences
-                ip_counts['source'][item['source']] += item[
-                    'totalSourcePackets']
-                ip_counts['destination'][item['destination']] += item[
-                    'totalSourcePackets']
-                port_counts['source'][item['sourcePort']] += item[
-                    'totalSourcePackets']
-                port_counts['destination'][item['destinationPort']] += item[
-                    'totalSourcePackets']
+                ip_counts['source'][item[features['source-ip']]] += item[
+                    features['source-packet-count']]
+                ip_counts['destination'][item[features[
+                    'destination-ip']]] += item[features[
+                        'source-packet-count']]
+                port_counts['source'][item[features['source-port']]] += item[
+                    features['source-packet-count']]
+                port_counts['destination'][item[features[
+                    'destination-port']]] += item[features[
+                        'source-packet-count']]
 
-                item['Tag'] = convert_class(item['Tag'])
+                item[features['label']] = convert_class(
+                    item[features['label']])
 
-                # Delete features for prototype
-                del item['totalSourceBytes']
-                del item['totalDestinationBytes']
-                del item['totalDestinationPackets']
-                del item['direction']
-                del item['startDateTime']
-                del item['stopDateTime']
-
-                for p in range(item.pop('totalSourcePackets')):
+                for p in range(item.pop(features['source-packet-count'])):
                     dataset += [item.copy()]
 
-        finally:
-            if json_file is not None:
-                json_file.close()
-                json_file = None
-                gc.collect()
     return dataset
 
 
@@ -74,11 +68,14 @@ def convert_class(x):
     return int(x != 'Normal')
 
 
+with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:
+    cfg = yaml.load(config_file).get('ids-classifier')
+    features = cfg['feature-names']
+
 # Load training data
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
-flows = load_data_set(DATA_PATH)
-
+flows = load_data_set(os.path.join(DIRNAME, DATA_PATH))
 for flow in flows:
     flow['source_ip_count'] = ip_counts['source'][flow.pop('source')]
     flow['destination_ip_count'] = ip_counts['destination'][flow.pop(
@@ -89,20 +86,21 @@ for flow in flows:
         'destinationPort')]
 
 temp = pd.DataFrame.from_dict(flows)
-data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
+data = pd.get_dummies(
+    temp, prefix=['protocol'], columns=[features['protocol']])
 data = data.reindex(
     columns=[
-        'Tag', 'destination_ip_count', 'destination_port_count',
-        'source_ip_count', 'source_port_count', 'protocol_icmp_ip',
-        'protocol_igmp', 'protocol_ip', 'protocol_ipv6icmp', 'protocol_tcp_ip',
-        'protocol_udp_ip'
+        features['label'], features['destination-ip'],
+        features['destination-port'], 'source_ip_count', 'source_port_count',
+        'protocol_icmp_ip', 'protocol_igmp', 'protocol_ip',
+        'protocol_ipv6icmp', 'protocol_tcp_ip', 'protocol_udp_ip'
     ],
     fill_value=0)
 print data
-print data.corr()['Tag'].sort_values(ascending=False)
+print data.corr()[features['label']].sort_values(ascending=False)
 
-y = data['Tag'].values
-del data['Tag']
+y = data[features['label']].values
+del data[features['label']]
 X_train, X_test, y_train, y_test = train_test_split(
     data, y, stratify=y, test_size=0.2)
 
@@ -120,4 +118,4 @@ accuracy = accuracy_score(y_test, pred)
 print 'Accuracy:', accuracy
 
 # Save model
-joblib.dump(clf, 'adaboost-ids.pkl')
+joblib.dump(clf, 'ids-model.pkl')
