@@ -23,11 +23,12 @@ class DistributedTopo(object):
     "Internal network topology class"
 
     def __init__(self):
-        self.subnet_mask = '16'
+        self.subnet_mask = '24'
         self.hosts = list()
         self.switches = dict()
+        self.routers = dict()
         self.mac_ip_list = None
-        self.ext_router_ip = '192.168.20.1'
+        self.ext_ip = '192.168.19.253'
 
     def create_topo(self, topo, main_switch, mac_ip_list):
         "Required method, called by main framework class. Generates network topology."
@@ -43,45 +44,56 @@ class DistributedTopo(object):
             if ip[-3:] == '255':
                 continue
 
+            # Get router
+            network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
+            router = self.__get_router(topo, main_switch, network_addr)
+
             # Create and link host and switch
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost(
                 'h%i' % mac_ip_counter,
                 ip=host_ip,
                 mac=mac,
-                defaultRoute='via %s' %
-                self.ext_router_ip)
+                defaultRoute='via %s' % router.ip)
             switch = topo.addSwitch('s%s' % str(len(self.switches) + 1))
 
             topo.addLink(host, switch)
-            topo.addLink(switch, main_switch)
+            topo.addLink(switch, self.switches[router.name])
 
             self.hosts.append(host)
             self.switches[host] = switch
 
             mac_ip_counter += 1
 
-        # print self.switches
+        return self.hosts, self.switches, self.routers
 
-        return self.hosts, self.switches
+    def __get_router(self, topo, main_switch, network_addr):
+        counter = len(self.routers)
+        try:
+            router = self.routers[network_addr]
+        except KeyError:
+            link_subnet = '192.168.20.'
+            link_ip = link_subnet + str(counter + 1)
 
-    # def configure_routers(self, routers, ext_routers_dict):
-    #     "Add routes to other routers"
+            # router_ip = network_addr[:-5] + '.1'
+            router_ip = (network_addr.rsplit('.', 1)[:-1])[0] + '.254'
+            router_name = topo.addNode(
+                'r%i' % counter, 
+                cls=LinuxRouter,
+                ip=router_ip + '/24')
 
-    #     print str(ext_routers_dict)
-    #     ext_router = ext_routers_dict.itervalues().next()
+            router_obj = namedtuple('Router', 'name, ip, link_ip')
+            router = router_obj(
+                name=router_name,
+                ip=router_ip,
+                link_ip=link_ip)
+            self.routers[network_addr] = router
 
-    #     for router in routers:
-    #         info(
-    #             router.cmd('ip route add default via %s' % ext_router.link_ip))
+            switch_num = len(self.switches)
+            switch = topo.addSwitch('rs%i' % switch_num)
+            self.switches[router_name] = switch
 
-    #         for network_addr, dest_router in self.routers.iteritems():
-    #             if dest_router.ip == router.IP():
-    #                 continue
+            topo.addLink(router_name, switch)
+            topo.addLink(switch, main_switch)
 
-    #             dest_ip = dest_router.link_ip
-
-    #             # print 'ip route add %s via %s' % (network_addr, dest_ip)
-    #             info(
-    #                 router.cmd('ip route add %s via %s' % (network_addr,
-    #                                                        dest_ip)))
+        return router

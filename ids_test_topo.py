@@ -40,7 +40,7 @@ parser.add_argument(
     default=0.1,
     type=int,
     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-    ' based on ratio specified
+    ' based on ratio specified'
 )
 parser.add_argument(
     '-t',
@@ -51,7 +51,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
+MAC_IP_FILE = 'config/mac_ip.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -70,6 +70,7 @@ class IDSTestFramework(Topo):
         self.ext_mac_ip_dict = None
 
         self.main_switch = None
+        self.int_routers = dict()
         self.ext_routers = dict()
         self.int_hosts = list()
         self.ext_hosts = list()
@@ -115,9 +116,9 @@ class IDSTestFramework(Topo):
             self.int_topo_class = int_topo
 
             try:
-                hosts, switches = int_topo.create_topo(self, main_switch,
+                hosts, switches, routers = int_topo.create_topo(self, main_switch,
                                                        mac_ip_set)
-                self.int_hosts, self.int_switches = hosts, switches
+                self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
             except TypeError as e:
                 traceback.print_exc()
                 print '%s must have create_topo(topo, mac_ip_set) method' \
@@ -125,7 +126,8 @@ class IDSTestFramework(Topo):
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
-        print 'SWITCHES: %s\n' % str(self.int_switches)
+        print 'SWITCHES: %s' % str(self.int_switches)
+        print 'ROUTERS: %s\n' % str(self.int_routers)
 
     # Generate test network
     def create_external_network(self,
@@ -156,7 +158,7 @@ class IDSTestFramework(Topo):
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.ext_hosts)
-        print 'SWITCHES: %s\n' % str(self.ext_switches)
+        print 'SWITCHES: %s' % str(self.ext_switches)
         print 'ROUTERS: %s\n' % str(self.ext_routers)
 
     # def generate_ip_aliases(self, hosts):
