@@ -32,7 +32,7 @@ parser.add_argument(
     default=3,
     type=int,
     help='Generates an n number of attack hosts based on the quantity'
-    ' specified (default: 3 hosts')
+    ' specified (default: 3 hosts)')
 parser.add_argument(
     '-r',
     '--ratio',
