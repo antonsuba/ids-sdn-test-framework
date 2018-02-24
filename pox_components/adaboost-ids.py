@@ -17,7 +17,7 @@ global_black_list = list()
 PROTOCOLS = {
     pkt.ipv4.ICMP_PROTOCOL: 0,
     pkt.ipv4.IGMP_PROTOCOL: 1,
-    pkt.ipv6.ICMP6_PROTOCOL: 2,
+    pkt.ipv6.ICMP6_PROTOCOL: 3,
     pkt.ipv4.TCP_PROTOCOL: 4,
     pkt.ipv4.UDP_PROTOCOL: 5
 }
