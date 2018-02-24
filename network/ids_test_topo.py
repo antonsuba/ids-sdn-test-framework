@@ -40,8 +40,7 @@ parser.add_argument(
     default=0.1,
     type=int,
     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-    ' based on ratio specified
-)
+    ' based on ratio specified')
 parser.add_argument(
     '-t',
     '--test',
@@ -51,9 +50,10 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
-TARGET_HOSTS_FILE = 'config/target_hosts.txt'
-ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
+DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+MAC_IP_FILE = os.path.join(DIRNAME, '../config/mac_ip.txt')
+TARGET_HOSTS_FILE = os.path.join(DIRNAME, '../config/target_hosts.txt')
+ATTACK_HOSTS_FILE = os.path.join(DIRNAME, '../config/attack_hosts.txt')
 
 
 class IDSTestFramework(Topo):

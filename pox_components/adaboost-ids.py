@@ -1,3 +1,4 @@
+import os
 from pox.core import core
 from pox.lib.addresses import IPAddr, EthAddr
 from pox.lib.util import dpidToStr
@@ -7,7 +8,11 @@ import pox.lib.packet as pkt
 from sklearn.externals import joblib
 from switch_pt import Switch
 
-CLASSIFIER_FILE = 'ext/adaboost-ids.pkl'
+CLASSIFIER_FILE = os.path.expanduser(
+    '~/ml-ids-test-environment-sdn/ml_ids/ids_models/%s.pkl' %
+    'adaboost-ids')  # TODO: Let user pick on startup
+TARGET_HOSTS_FILE = os.path.expanduser(
+    '~/ml-ids-test-environment-sdn/config/target_hosts.txt')
 
 log = core.getLogger()
 checker = list()
@@ -22,9 +27,6 @@ PROTOCOLS = {
     pkt.ipv4.UDP_PROTOCOL: 5
 }
 
-TARGET_HOSTS_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/config/target_hosts.txt'
-#TARGET_HOSTS_FILE = '/media/sf_ids-sdn/config/target_hosts.txt'
-
 
 class PacketChecker(object):
     def __init__(self, connection, dpid):
@@ -33,7 +35,7 @@ class PacketChecker(object):
 
         self.number = dpid
         self.attached_host = None
-        self.attached_host_num = None        
+        self.attached_host_num = None
         self.enable_checker = False
         self.srcip_list = {}
         self.black_list = list()
@@ -56,8 +58,6 @@ class PacketChecker(object):
         self.activate_ids()
 
     def activate_ids(self, filepath=TARGET_HOSTS_FILE):
-        # log.info('Activating IDS switches')
-
         f = open(filepath, 'r')
         for line in f:
             host = line.split('_')
@@ -69,7 +69,8 @@ class PacketChecker(object):
                 self.set_checker(True)
                 self.attached_host = ip
                 self.attached_host_num = host_num
-                log.debug('IDS Switch %i activated with IP %s' % (switch_num, ip))
+                log.debug('IDS Switch %i activated with IP %s' % (switch_num,
+                                                                  ip))
 
     def set_checker(self, enable):
         self.enable_checker = bool(enable)
@@ -105,15 +106,13 @@ class PacketChecker(object):
         self.connection.send(msg)
 
     def _handle_PacketIn(self, event):
-        # log.info('IDS#%s Packet In. Checker: %s' % (self.number,
-        #                                             str(self.enable_checker)))
-
         if self.enable_checker is True:
             packet = event.parsed
             packet_in = event.ofp
 
             self.count += 1
-            log.info('Host#%i - %s' % (self.attached_host_num, self.attached_host))
+            log.info('Host#%i - %s' % (self.attached_host_num,
+                                       self.attached_host))
             # log.info('Switch#%i - packet#%i' % (self.number, self.count))
 
             ip = packet.find('ipv4')
@@ -125,7 +124,6 @@ class PacketChecker(object):
                          str(ip.srcip) + 'Destination IP:' + str(ip.dstip))
 
                 # Do nothing if packet came from host
-                # log.debug('%s - %s' % (str(self.attached_host), str(ip.srcip)))
                 if self.attached_host == ip.srcip:
                     log.info('Packet from attached host\n')
                     return
@@ -156,7 +154,6 @@ class PacketChecker(object):
                     # Check and update count of destination port
                     dst_port = mac_to_port[packet.dst]
 
-                    # dst_port = 1 # packet.dst
                     dst_ip = IPAddr(self.attached_host)
                     if dst_ip in self.destination_ip_count_list:
                         self.destination_ip_count_list[dst_ip] += 1
@@ -185,8 +182,8 @@ class PacketChecker(object):
                     log.info(str(entry))
                     pred = self.clf.predict(entry)
 
-                    log.debug('%s - classification: %i' % (str(ip.srcip), pred))
-                    # pred = False
+                    log.debug('%s - classification: %i' % (str(ip.srcip),
+                                                           pred))
 
                     if pred:
                         log.info("Added to blacklist: %s" % str(ip.srcip))
