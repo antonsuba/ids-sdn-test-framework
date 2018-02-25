@@ -97,7 +97,9 @@ class ExternalTopo(object):
             # router_ip = network_addr[:-5] + '.1'
             router_ip = '192.168.19.254'
             router_name = topo.addNode(
-                'r%i' % (counter + self.offset), cls=LinuxRouter, ip=router_ip + '/24')
+                'r%i' % (counter + self.offset),
+                cls=LinuxRouter, 
+                ip=router_ip + '/24')
 
             Router = namedtuple('Router', 'name, ip, link_ip, aliases')
             router = Router(
@@ -112,8 +114,11 @@ class ExternalTopo(object):
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
-            topo.addLink(
-                router_name, main_switch, params1={'ip': link_ip + '/24'})
+
+            for i in range(len(int_routers)):
+                link_ip = link_subnet + str(counter + len(int_routers) + i)               
+                topo.addLink(
+                    router_name, main_switch, params1={'ip': link_ip + '/24'})
 
         return router
 

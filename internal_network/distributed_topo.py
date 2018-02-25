@@ -102,5 +102,18 @@ class DistributedTopo(object):
     def configure_routers(self, routers):
         "Add default gateways and links to other internal subnets"
 
+        counter = 0
         for router in routers:
-            info(router.cmd('ip route add default via 192.168.20.%i' % len(routers)))
+            info(router.cmd('ip route add default via 192.168.20.%i' % (len(routers) + counter)))
+            
+            for network_addr, dest_router in self.routers.iteritems():
+                if dest_router.ip == router.IP():
+                    continue
+
+                dest_ip = dest_router.link_ip
+
+                info(
+                    router.cmd('ip route add %s via %s' % (network_addr,
+                                                           dest_ip)))
+            
+            counter += 1
