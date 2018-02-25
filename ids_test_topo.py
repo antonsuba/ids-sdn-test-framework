@@ -148,7 +148,7 @@ class IDSTestFramework(Topo):
 
             try:
                 hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set, offset)
+                    self, main_switch, ext_mac_set, self.int_routers, offset)
                 self.ext_hosts, self.ext_switches, self.ext_routers = \
                     hosts, switches, routers
             except TypeError:
@@ -313,17 +313,18 @@ def main():
     # int_hosts = [net.get(host) for host in ids_test.int_hosts]
     # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
 
-    # int_routers = [
-    #     net.get(router.name)
-    #     for key, router in ids_test.int_routers.iteritems()
-    # ]
+    int_routers = [
+        net.get(router.name)
+        for key, router in ids_test.int_routers.iteritems()
+    ]
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
     # ids_test.int_topo_class.configure_routers(int_routers,
     #                                           ids_test.ext_routers)
-    ids_test.ext_topo_class.configure_routers(ext_routers, {})
+    ids_test.int_topo_class.configure_routers(int_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers, ids_test.int_routers)
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)

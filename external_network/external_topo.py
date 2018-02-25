@@ -28,7 +28,7 @@ class ExternalTopo(object):
         self.offset = None
         self.mac_ip_dict = None
 
-    def create_topo(self, topo, main_switch, mac_ip_dict, offset):
+    def create_topo(self, topo, main_switch, mac_ip_dict, int_routers, offset):
         "Required method, called by main framework class. Generates network topology."
 
         self.offset = offset
@@ -51,7 +51,7 @@ class ExternalTopo(object):
 
             # Create and link host and switch
             router = self.__get_router(topo, main_switch, network_addr,
-                                       alias_set)
+                                       alias_set, int_routers)
 
             host_ip = '%s/%s' % (ip, self.subnet_mask)
             host = topo.addHost(
@@ -70,7 +70,7 @@ class ExternalTopo(object):
 
             mac_ip_counter += 1
 
-        self.__create_tcpreplay_host(topo, mac_ip_counter)
+        # self.__create_tcpreplay_host(topo, mac_ip_counter)
 
         return self.hosts, self.switches, self.routers
 
@@ -78,26 +78,26 @@ class ExternalTopo(object):
         replay_host = topo.addHost(
             'rh0',
             ip='192.168.19.%i' % len(self.hosts),
-            defaultRoute='via 192.168.19.253')
+            defaultRoute='via 192.168.19.254')
         switch = topo.addSwitch('s%i' % switch_num)
         router = self.routers.itervalues().next()
 
         topo.addLink(replay_host, switch)
         topo.addLink(switch, router.name)
 
-    def __get_router(self, topo, main_switch, network_addr, aliases):
+    def __get_router(self, topo, main_switch, network_addr, aliases, int_routers):
         counter = len(self.routers)
         try:
             router = self.routers[network_addr]
             router.aliases.update(aliases)
         except KeyError:
             link_subnet = '192.168.20.'
-            link_ip = link_subnet + str(counter + 1)
+            link_ip = link_subnet + str(counter + len(int_routers))
 
             # router_ip = network_addr[:-5] + '.1'
-            router_ip = '192.168.19.253'
+            router_ip = '192.168.19.254'
             router_name = topo.addNode(
-                'r%i' % counter, cls=LinuxRouter, ip=router_ip + '/24')
+                'r%i' % (counter + self.offset), cls=LinuxRouter, ip=router_ip + '/24')
 
             Router = namedtuple('Router', 'name, ip, link_ip, aliases')
             router = Router(
@@ -113,7 +113,7 @@ class ExternalTopo(object):
 
             topo.addLink(router_name, switch)
             topo.addLink(
-                router_name, main_switch, params1={'ip': link_ip + '/16'})
+                router_name, main_switch, params1={'ip': link_ip + '/24'})
 
         return router
 

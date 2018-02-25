@@ -82,11 +82,12 @@ class DistributedTopo(object):
                 cls=LinuxRouter,
                 ip=router_ip + '/24')
 
-            router_obj = namedtuple('Router', 'name, ip, link_ip')
-            router = router_obj(
+            Router = namedtuple('Router', 'name, ip, link_ip, aliases')
+            router = Router(
                 name=router_name,
                 ip=router_ip,
-                link_ip=link_ip)
+                link_ip=link_ip,
+                aliases=())
             self.routers[network_addr] = router
 
             switch_num = len(self.switches)
@@ -94,6 +95,12 @@ class DistributedTopo(object):
             self.switches[router_name] = switch
 
             topo.addLink(router_name, switch)
-            topo.addLink(switch, main_switch)
+            topo.addLink(router_name, main_switch, params1={'ip': link_ip + '/24'})
 
         return router
+
+    def configure_routers(self, routers):
+        "Add default gateways and links to other internal subnets"
+
+        for router in routers:
+            info(router.cmd('ip route add default via 192.168.20.%i' % len(routers)))
