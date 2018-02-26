@@ -6,9 +6,10 @@ import imp
 import argparse
 import sys
 import inspect
-import pkgutil
+import yaml
 import re
 import traceback
+from importlib import import_module
 from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
@@ -50,11 +51,15 @@ parser.add_argument(
 args = parser.parse_args()
 
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+CONFIG = os.path.join(DIRNAME, '../config/config.yml')
 MAC_IP_FILE = os.path.join(DIRNAME, '../config/mac_ip.txt')
 TARGET_HOSTS_FILE = os.path.join(DIRNAME, '../config/target_hosts.txt')
 ATTACK_HOSTS_FILE = os.path.join(DIRNAME, '../config/attack_hosts.txt')
 sys.path.insert(0, os.path.join(DIRNAME, '../'))
 import test_cases  # noqa
+
+with open(CONFIG, 'r') as config_file:
+    cfg = yaml.load(config_file).get('network').get('ids-test-topo')
 
 
 class IDSTestFramework(Topo):
@@ -107,22 +112,20 @@ class IDSTestFramework(Topo):
                                 package=internal_network):
         "Module loader for internal network generator"
 
-        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        module = import_module('internal_network.%s' % cfg['internal-network'])
+        topo_name, topo_class = self.__load_class(module)
 
-            module = importer.find_module(modname).load_module(modname)
-            topo_name, topo_class = self.__load_class(module)
+        int_topo = topo_class()
+        self.int_topo_class = int_topo
 
-            int_topo = topo_class()
-            self.int_topo_class = int_topo
-
-            try:
-                hosts, switches = int_topo.create_topo(self, main_switch,
-                                                       mac_ip_set)
-                self.int_hosts, self.int_switches = hosts, switches
-            except TypeError as e:
-                traceback.print_exc()
-                print '%s must have create_topo(topo, mac_ip_set) method' \
-                    % topo_name
+        try:
+            hosts, switches = int_topo.create_topo(self, main_switch,
+                                                   mac_ip_set)
+            self.int_hosts, self.int_switches = hosts, switches
+        except TypeError as e:
+            traceback.print_exc()
+            print '%s must have create_topo(topo, mac_ip_set) method' \
+                % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
@@ -136,24 +139,21 @@ class IDSTestFramework(Topo):
         "Module loader for external network generator"
 
         offset = len(self.int_switches)
+        module = import_module('external_network.%s' % cfg['external-network'])
+        topo_name, topo_class = self.__load_class(module)
 
-        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        ext_topo = topo_class()
+        self.ext_topo_class = ext_topo
 
-            module = importer.find_module(modname).load_module(modname)
-            topo_name, topo_class = self.__load_class(module)
-
-            ext_topo = topo_class()
-            self.ext_topo_class = ext_topo
-
-            try:
-                hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set, offset)
-                self.ext_hosts, self.ext_switches, self.ext_routers = \
-                    hosts, switches, routers
-            except TypeError:
-                traceback.print_exc()
-                print '%s must have create_topo(Mininet, mac_ip_set, offset,' \
-                    ' switches, test_hosts, test_switches) method' % topo_name
+        try:
+            hosts, switches, routers = ext_topo.create_topo(
+                self, main_switch, ext_mac_set, offset)
+            self.ext_hosts, self.ext_switches, self.ext_routers = \
+                hosts, switches, routers
+        except TypeError:
+            traceback.print_exc()
+            print '%s must have create_topo(Mininet, mac_ip_set, offset,' \
+                ' switches, test_hosts, test_switches) method' % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.ext_hosts)
