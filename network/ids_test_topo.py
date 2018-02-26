@@ -19,7 +19,6 @@ from mininet.topo import Topo
 from mininet.node import Node
 import internal_network
 import external_network
-import test_cases
 
 # Setup arguments
 parser = argparse.ArgumentParser(
@@ -54,6 +53,8 @@ DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 MAC_IP_FILE = os.path.join(DIRNAME, '../config/mac_ip.txt')
 TARGET_HOSTS_FILE = os.path.join(DIRNAME, '../config/target_hosts.txt')
 ATTACK_HOSTS_FILE = os.path.join(DIRNAME, '../config/attack_hosts.txt')
+sys.path.insert(0, os.path.join(DIRNAME, '../'))
+import test_cases  # noqa
 
 
 class IDSTestFramework(Topo):
