@@ -26,13 +26,17 @@ PROTOCOLS = {
 
 
 def load_validation_set(data_path):
-    csv_path = os.path.join(data_path, '*.csv')
+    data_path = os.path.join(data_path,
+                             '*.%s' % cfg['validation-data-filetype'])
     dataset = []
     classifications = []
     loading = ['|', '/', '-', "\\"]
-    for file in glob.glob(csv_path):
-        with open(file, 'r') as csv_file:
-            temp = csv.DictReader(csv_file)
+    for file in glob.glob(data_path):
+        with open(file, 'r') as data_file:
+            if cfg['validation-data-filetype'] == 'json':
+                temp = json.load(data_file)
+            else:
+                temp = csv.DictReader(data_file)
             counter = 0.0
             for item in temp:
                 correctly_ordered_list = list()

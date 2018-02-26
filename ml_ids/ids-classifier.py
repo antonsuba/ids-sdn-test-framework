@@ -15,9 +15,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = 'training_data'
-CONFIG = '../config/config.yml'
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+DATA_PATH = os.path.join(DIRNAME, 'training_data')
+CONFIG = os.path.join(DIRNAME, '../config/config.yml')
 
 
 def load_data_set(data_path):
@@ -68,14 +68,14 @@ def convert_class(x):
     return int(x.lower() != 'normal')
 
 
-with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:
+with open(CONFIG, 'r') as config_file:
     cfg = yaml.load(config_file).get('ml_ids').get('ids-classifier')
     features = cfg['feature-names']
 
 # Load training data
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
-flows = load_data_set(os.path.join(DIRNAME, DATA_PATH))
+flows = load_data_set(DATA_PATH)
 for flow in flows:
     flow['source_ip_count'] = ip_counts['source'][flow.pop('source')]
     flow['destination_ip_count'] = ip_counts['destination'][flow.pop(
