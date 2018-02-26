@@ -11,4 +11,16 @@ ml_ids:
       protocol: protocolName
       source-packet-count: totalSourcePackets
       label: Tag
+  classifier-validation:
+    validation-dataset-folder: CIDDS
+    training-data-filetype: csv # csv or json
+    classifier: adaboost-ids
+    feature-names:
+      source-ip: Src IP
+      destination-ip: Dst IP
+      source-port: Src Pt
+      destination-port: Dst Pt
+      protocol: Proto
+      source-packet-count: Packets
+      label: label
 ...
