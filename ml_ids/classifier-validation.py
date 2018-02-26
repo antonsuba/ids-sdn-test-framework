@@ -1,15 +1,20 @@
 import csv
+import yaml
 import os
 import glob
+import inspect
 from math import floor
 from collections import defaultdict
 from sklearn.externals import joblib
 from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import accuracy_score, f1_score, recall_score,
+from sklearn.metrics import accuracy_score, f1_score, recall_score, \
 precision_score, confusion_matrix
 
-DATA_PATH = '../training_data/IDS2012'
-CLASSIFIER_FILE = './adaboost-ids.pkl'
+CONFIG = '../config/config.yml'
+DATA_PATH = 'validation_data'
+CLASSIFIERS = 'ids_models'
+DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+
 PROTOCOLS = {
     'ICMP ': 0,
     'IGMP ': 1,
@@ -54,8 +59,7 @@ def load_validation_set(data_path):
 
 
 def convert_class(x):
-    return int(x not in ['normal', 'Normal'])
-
+    return int(x.lower() != 'normal')
 
 ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
 port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}

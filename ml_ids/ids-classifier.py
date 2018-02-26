@@ -65,7 +65,7 @@ def load_data_set(data_path):
 
 
 def convert_class(x):
-    return int(x != 'Normal')
+    return int(x.lower() != 'normal')
 
 
 with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:

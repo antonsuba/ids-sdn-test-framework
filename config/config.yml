@@ -16,8 +16,8 @@ ml_ids:
     training-data-filetype: csv # csv or json
     classifier: adaboost-ids
     feature-names:
-      source-ip: Src IP
-      destination-ip: Dst IP
+      source-ip: Src IP Addr
+      destination-ip: Dst IP Addr
       source-port: Src Pt
       destination-port: Dst Pt
       protocol: Proto
