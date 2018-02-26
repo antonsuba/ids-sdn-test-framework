@@ -41,6 +41,10 @@ class ExternalTopo(object):
             ip_list = list(ip_set)
             ip = '192.168.19.' + str(mac_ip_counter + 1)
 
+            # Skip broadcast addresses
+            if ip[-3:] == '255' or ip == '0.0.0.0':
+                continue
+
             # if not self.routers:
             #     network_addr = (ip.rsplit('.', 1)[:-1])[0] + '.0/' + self.subnet_mask
 

@@ -41,7 +41,7 @@ class DistributedTopo(object):
             ip = mac_ip_pair[1]
 
             # Skip broadcast addresses
-            if ip[-3:] == '255':
+            if ip[-3:] == '255' or ip == '0.0.0.0':
                 continue
 
             # Get router

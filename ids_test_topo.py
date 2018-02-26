@@ -51,7 +51,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
