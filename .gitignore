@@ -1,5 +1,4 @@
 env/
-ml_ids/training_data/*
 .ipynb_checkpoints/
 pcap/
 config/*.txt
