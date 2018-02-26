@@ -15,6 +15,10 @@ DATA_PATH = 'validation_data'
 CLASSIFIERS = 'ids_models'
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 
+with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:
+    cfg = yaml.load(config_file).get('ml_ids').get('classifier-validation')
+    features = cfg['feature-names']
+
 PROTOCOLS = {
     'ICMP ': 0,
     'IGMP ': 1,
@@ -25,7 +29,7 @@ PROTOCOLS = {
 }
 
 
-def load_validation_set(data_path):
+def load_validation_set(data_path, ip_counts, port_counts):
     data_path = os.path.join(data_path,
                              '*.%s' % cfg['validation-data-filetype'])
     dataset = []
@@ -75,39 +79,42 @@ def convert_class(x):
     return int(x.lower() != 'normal')
 
 
-with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:
-    cfg = yaml.load(config_file).get('ml_ids').get('classifier-validation')
-    features = cfg['feature-names']
-ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
-port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
-validation_flows, labels = load_validation_set(
-    os.path.join(DIRNAME, DATA_PATH, cfg['validation-dataset-folder']))
+def main():
+    ip_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
+    port_counts = {'source': defaultdict(int), 'destination': defaultdict(int)}
+    validation_flows, labels = load_validation_set(
+        os.path.join(DIRNAME, DATA_PATH, cfg['validation-dataset-folder']),
+        ip_counts, port_counts)
 
-for flow in validation_flows:
-    flow[3] = ip_counts['source'][flow[3]]
-    flow[1] = ip_counts['destination'][flow[1]]
-    flow[2] = port_counts['source'][flow[2]]
-    flow[0] = port_counts['destination'][flow[0]]
+    for flow in validation_flows:
+        flow[3] = ip_counts['source'][flow[3]]
+        flow[1] = ip_counts['destination'][flow[1]]
+        flow[2] = port_counts['source'][flow[2]]
+        flow[0] = port_counts['destination'][flow[0]]
 
-clf = joblib.load(
-    os.path.join(DIRNAME, CLASSIFIERS, cfg['classifier'] + '.pkl'))
-print 'Classifier %s loaded' % cfg['classifier'] + '.pkl'
-# print 'Accuracy:', accuracy_score(labels, pred)
+    clf = joblib.load(
+        os.path.join(DIRNAME, CLASSIFIERS, cfg['classifier'] + '.pkl'))
+    print 'Classifier %s loaded' % cfg['classifier'] + '.pkl'
+    # print 'Accuracy:', accuracy_score(labels, pred)
 
-pred = cross_val_predict(clf, validation_flows, labels, cv=3, verbose=10)
+    pred = cross_val_predict(clf, validation_flows, labels, cv=3, verbose=10)
 
-cnf_mx = confusion_matrix(labels, pred)
-print 'Confusion Matrix:'
-print cnf_mx
+    cnf_mx = confusion_matrix(labels, pred)
+    print 'Confusion Matrix:'
+    print cnf_mx
 
-precision = precision_score(labels, pred)
-print 'Precision:'
-print precision
+    precision = precision_score(labels, pred)
+    print 'Precision:'
+    print precision
 
-recall = recall_score(labels, pred)
-print 'Recall:'
-print recall
+    recall = recall_score(labels, pred)
+    print 'Recall:'
+    print recall
 
-f1 = f1_score(labels, pred)
-print 'F1 Score:'
-print f1
+    f1 = f1_score(labels, pred)
+    print 'F1 Score:'
+    print f1
+
+
+if __name__ == "__main__":
+    main()
