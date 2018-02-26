@@ -1,6 +1,5 @@
 env/
 .ipynb_checkpoints/
-pcap/
 config/*.txt
 .vscode
 .idea
