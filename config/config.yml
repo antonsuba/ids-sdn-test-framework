@@ -1,0 +1,14 @@
+---
+ml_ids:
+  ids-classifier:
+    training-dataset-folder: IDS2012
+    training-data-filetype: json # csv or json
+    feature-names:
+      source-ip: source
+      destination-ip: destination
+      source-port: sourcePort
+      destination-port: destinationPort
+      protocol: protocolName
+      source-packet-count: totalSourcePackets
+      label: Tag
+...

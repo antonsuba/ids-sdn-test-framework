@@ -15,8 +15,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 from sklearn.model_selection import train_test_split
 
-DATA_PATH = '../training_data'
-CONFIG = '../config/ml_ids.yml'
+DATA_PATH = 'training_data'
+CONFIG = '../config/config.yml'
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 
 
@@ -69,7 +69,7 @@ def convert_class(x):
 
 
 with open(os.path.join(DIRNAME, CONFIG), 'r') as config_file:
-    cfg = yaml.load(config_file).get('ids-classifier')
+    cfg = yaml.load(config_file).get('ml_ids').get('ids-classifier')
     features = cfg['feature-names']
 
 # Load training data
