@@ -23,33 +23,33 @@ import internal_network
 import external_network
 
 # Setup arguments
-parser = argparse.ArgumentParser(
-    description='Generates n number of hosts to simulate normal'
-    ' and anomalous attack behaviors')
-parser.add_argument(
-    '-n',
-    '--hosts',
-    dest='hosts',
-    default=3,
-    type=int,
-    help='Generates an n number of attack hosts based on the quantity'
-    ' specified (default: 3 hosts)')
-parser.add_argument(
-    '-r',
-    '--ratio',
-    dest='ratio',
-    default=0.1,
-    type=int,
-    help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-    ' based on ratio specified')
-parser.add_argument(
-    '-t',
-    '--test',
-    dest='test',
-    default='all',
-    type=str,
-    help='Specify tests (Defaults to all)')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(
+#     description='Generates n number of hosts to simulate normal'
+#     ' and anomalous attack behaviors')
+# parser.add_argument(
+#     '-n',
+#     '--hosts',
+#     dest='hosts',
+#     default=3,
+#     type=int,
+#     help='Generates an n number of attack hosts based on the quantity'
+#     ' specified (default: 3 hosts)')
+# parser.add_argument(
+#     '-r',
+#     '--ratio',
+#     dest='ratio',
+#     default=0.1,
+#     type=int,
+#     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
+#     ' based on ratio specified')
+# parser.add_argument(
+#     '-t',
+#     '--test',
+#     dest='test',
+#     default='all',
+#     type=str,
+#     help='Specify tests (Defaults to all)')
+# args = parser.parse_args()
 
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 CONFIG = os.path.join(DIRNAME, '../config/config.yml')
@@ -300,7 +300,7 @@ class IDSTestFramework(Topo):
         return mac_ips
 
 
-def main(exec_tests=[], tests=[]):
+def main(exec_tests=False, tests=[]):
     setLogLevel('info')
 
     # Instantiate IDS Test Framework

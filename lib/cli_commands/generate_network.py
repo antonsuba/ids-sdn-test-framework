@@ -16,8 +16,16 @@ class GenerateNetworkCommand(object):
     exec_test_trigger = 'exectest'
 
     def run(self, args):
-        if args[0] and args[0] == GenerateNetworkCommand.exec_test_trigger:
-            print 'Invalid command arg. Use "exectest" to initiate testing'
+        if not args:
+            ids_test_topo.main()
             return
 
-        ids_test_topo.main(args[0], args[1])
+        if args[0] != GenerateNetworkCommand.exec_test_trigger:
+            print 'Invalid command. Use "exectest" arg to initiate tests'
+            return
+
+        tests = []
+        if len(args) >= 2:
+            tests = args[1:]
+
+        ids_test_topo.main(exec_tests=True, tests=tests)
