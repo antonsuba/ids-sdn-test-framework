@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import inspect
 import pkgutil
 import sys
@@ -27,7 +30,7 @@ def main():
         cmd_class = commands[cmd_arg]
 
         cmd_driver = cmd_class()
-        cmd_driver.run()
+        cmd_driver.run(sys.argv[2:])
     except KeyError:
         print 'Command not found'
 

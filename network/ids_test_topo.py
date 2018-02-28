@@ -9,6 +9,7 @@ import inspect
 import yaml
 import re
 import traceback
+import pkgutil
 from importlib import import_module
 from collections import defaultdict
 from mininet.net import Mininet
@@ -299,7 +300,7 @@ class IDSTestFramework(Topo):
         return mac_ips
 
 
-def main():
+def main(exec_tests=[], tests=[]):
     setLogLevel('info')
 
     # Instantiate IDS Test Framework
@@ -309,13 +310,7 @@ def main():
 
     net.start()
 
-    # int_hosts = [net.get(host) for host in ids_test.int_hosts]
-    # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
-
-    # int_routers = [
-    #     net.get(router.name)
-    #     for key, router in ids_test.int_routers.iteritems()
-    # ]
+    # Configure routers and add aliases
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
@@ -327,13 +322,13 @@ def main():
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
-    # Start servers of internal network hosts
-    # start_internal_servers('dummy_files', 8000)
-
     # Execute framework commands
     # log_attack_hosts()
     targets_arr = ids_test.log_target_hosts(net)
-    # exec_test_cases(args.test, targets_arr)
+
+    if exec_tests:
+        print 'Hello'
+        # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()

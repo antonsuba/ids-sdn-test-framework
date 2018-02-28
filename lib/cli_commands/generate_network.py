@@ -13,6 +13,11 @@ class GenerateNetworkCommand(object):
     "Command driver for generating Mininet network"
 
     trigger = 'createnetwork'
+    exec_test_trigger = 'exectest'
 
-    def run(self):
-        print 'Hello'
+    def run(self, args):
+        if args[0] and args[0] == GenerateNetworkCommand.exec_test_trigger:
+            print 'Invalid command arg. Use "exectest" to initiate testing'
+            return
+
+        ids_test_topo.main(args[0], args[1])
