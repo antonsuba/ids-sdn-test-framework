@@ -6,9 +6,11 @@ import imp
 import argparse
 import sys
 import inspect
-import pkgutil
+import yaml
 import re
 import traceback
+import pkgutil
+from importlib import import_module
 from collections import defaultdict
 from mininet.net import Mininet
 from mininet.link import TCLink
@@ -19,41 +21,47 @@ from mininet.topo import Topo
 from mininet.node import Node
 import internal_network
 import external_network
-import test_cases
 
 # Setup arguments
-parser = argparse.ArgumentParser(
-    description='Generates n number of hosts to simulate normal'
-    ' and anomalous attack behaviors')
-parser.add_argument(
-    '-n',
-    '--hosts',
-    dest='hosts',
-    default=3,
-    type=int,
-    help='Generates an n number of attack hosts based on the quantity'
-    ' specified (default: 3 hosts')
-parser.add_argument(
-    '-r',
-    '--ratio',
-    dest='ratio',
-    default=0.1,
-    type=int,
-    help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-    ' based on ratio specified'
-)
-parser.add_argument(
-    '-t',
-    '--test',
-    dest='test',
-    default='all',
-    type=str,
-    help='Specify tests (Defaults to all)')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(
+#     description='Generates n number of hosts to simulate normal'
+#     ' and anomalous attack behaviors')
+# parser.add_argument(
+#     '-n',
+#     '--hosts',
+#     dest='hosts',
+#     default=3,
+#     type=int,
+#     help='Generates an n number of attack hosts based on the quantity'
+#     ' specified (default: 3 hosts)')
+# parser.add_argument(
+#     '-r',
+#     '--ratio',
+#     dest='ratio',
+#     default=0.1,
+#     type=int,
+#     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
+#     ' based on ratio specified')
+# parser.add_argument(
+#     '-t',
+#     '--test',
+#     dest='test',
+#     default='all',
+#     type=str,
+#     help='Specify tests (Defaults to all)')
+# args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip_full.txt'
-TARGET_HOSTS_FILE = 'config/target_hosts.txt'
-ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
+DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
+CONFIG = os.path.join(DIRNAME, '../config/config.yml')
+MAC_IP_FILE = os.path.join(DIRNAME, '../config/mac_ip.txt')
+TARGET_HOSTS_FILE = os.path.join(DIRNAME, '../config/target_hosts.txt')
+ATTACK_HOSTS_FILE = os.path.join(DIRNAME, '../config/attack_hosts.txt')
+sys.path.insert(0, os.path.join(DIRNAME, '../'))
+sys.path.insert(0, DIRNAME)
+import test_cases  # noqa
+
+with open(CONFIG, 'r') as config_file:
+    cfg = yaml.load(config_file).get('network').get('ids-test-topo')
 
 
 class IDSTestFramework(Topo):
@@ -107,22 +115,20 @@ class IDSTestFramework(Topo):
                                 package=internal_network):
         "Module loader for internal network generator"
 
-        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        module = import_module('internal_network.%s' % cfg['internal-network'])
+        topo_name, topo_class = self.__load_class(module)
 
-            module = importer.find_module(modname).load_module(modname)
-            topo_name, topo_class = self.__load_class(module)
+        int_topo = topo_class()
+        self.int_topo_class = int_topo
 
-            int_topo = topo_class()
-            self.int_topo_class = int_topo
-
-            try:
-                hosts, switches, routers = int_topo.create_topo(self, main_switch,
-                                                       mac_ip_set)
-                self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
-            except TypeError as e:
-                traceback.print_exc()
-                print '%s must have create_topo(topo, mac_ip_set) method' \
-                    % topo_name
+        try:
+            hosts, switches, routers = int_topo.create_topo(self, main_switch,
+                                                    mac_ip_set)
+            self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
+        except TypeError as e:
+            traceback.print_exc()
+            print '%s must have create_topo(topo, mac_ip_set) method' \
+                % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
@@ -137,24 +143,21 @@ class IDSTestFramework(Topo):
         "Module loader for external network generator"
 
         offset = len(self.int_switches)
+        module = import_module('external_network.%s' % cfg['external-network'])
+        topo_name, topo_class = self.__load_class(module)
 
-        for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
+        ext_topo = topo_class()
+        self.ext_topo_class = ext_topo
 
-            module = importer.find_module(modname).load_module(modname)
-            topo_name, topo_class = self.__load_class(module)
-
-            ext_topo = topo_class()
-            self.ext_topo_class = ext_topo
-
-            try:
-                hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set, self.int_routers, offset)
-                self.ext_hosts, self.ext_switches, self.ext_routers = \
-                    hosts, switches, routers
-            except TypeError:
-                traceback.print_exc()
-                print '%s must have create_topo(Mininet, mac_ip_set, offset,' \
-                    ' switches, test_hosts, test_switches) method' % topo_name
+        try:
+            hosts, switches, routers = ext_topo.create_topo(
+                self, main_switch, ext_mac_set, self.int_routers, offset)
+            self.ext_hosts, self.ext_switches, self.ext_routers = \
+                hosts, switches, routers
+        except TypeError:
+            traceback.print_exc()
+            print '%s must have create_topo(Mininet, mac_ip_set, offset,' \
+                ' switches, test_hosts, test_switches) method' % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.ext_hosts)
@@ -300,7 +303,7 @@ class IDSTestFramework(Topo):
         return mac_ips
 
 
-def main():
+def main(exec_tests=False, tests=[]):
     setLogLevel('info')
 
     # Instantiate IDS Test Framework
@@ -329,13 +332,13 @@ def main():
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
-    # Start servers of internal network hosts
-    # start_internal_servers('dummy_files', 8000)
-
     # Execute framework commands
     # log_attack_hosts()
     targets_arr = ids_test.log_target_hosts(net)
-    # exec_test_cases(args.test, targets_arr)
+
+    if exec_tests:
+        print 'Hello'
+        # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()

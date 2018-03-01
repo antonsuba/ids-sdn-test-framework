@@ -1,0 +1,30 @@
+---
+ml_ids:
+  ids-classifier:
+    training-dataset-folder: IDS2012
+    training-data-filetype: json # csv or json
+    feature-names:
+      source-ip: source
+      destination-ip: destination
+      source-port: sourcePort
+      destination-port: destinationPort
+      protocol: protocolName
+      source-packet-count: totalSourcePackets
+      label: Tag
+  classifier-validation:
+    validation-dataset-folder: CIDDS
+    validation-data-filetype: csv # csv or json
+    classifier: adaboost-ids
+    feature-names:
+      source-ip: Src IP Addr
+      destination-ip: Dst IP Addr
+      source-port: Src Pt
+      destination-port: Dst Pt
+      protocol: Proto
+      source-packet-count: Packets
+      label: label
+network:
+  ids-test-topo:
+    internal-network: distributed_topo
+    external-network: external_topo
+...

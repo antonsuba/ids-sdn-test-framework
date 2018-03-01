@@ -6,11 +6,10 @@ from pox.lib.addresses import IPAddr, EthAddr
 
 log = core.getLogger()
 
-ATTACK_HOSTS_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/config/attack_hosts.txt'
-RESULT_FILE = '/home/ubuntu/ml-ids-test-environment-sdn/results/ids_test_results.txt'
-
-#ATTACK_HOSTS_FILE = '/media/sf_ids-sdn/config/attack_hosts.txt'
-#RESULT_FILE = '/media/sf_ids-sdn/results/ids_test_results.txt'
+ATTACK_HOSTS_FILE = os.path.expanduser(
+    '~/ml-ids-test-environment-sdn/config/attack_hosts.txt')
+RESULT_FILE = os.path.expanduser(
+    '~/ml-ids-test-environment-sdn/results/ids_test_results.txt')
 
 global_blocked_ips = {}
 

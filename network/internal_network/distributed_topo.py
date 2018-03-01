@@ -31,7 +31,8 @@ class DistributedTopo(object):
         self.ext_ip = '192.168.19.253'
 
     def create_topo(self, topo, main_switch, mac_ip_list):
-        "Required method, called by main framework class. Generates network topology."
+        "Required method, called by main framework class. Generates network" \
+            " topology."
 
         self.mac_ip_list = mac_ip_list
 
