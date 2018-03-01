@@ -57,6 +57,7 @@ MAC_IP_FILE = os.path.join(DIRNAME, '../config/mac_ip.txt')
 TARGET_HOSTS_FILE = os.path.join(DIRNAME, '../config/target_hosts.txt')
 ATTACK_HOSTS_FILE = os.path.join(DIRNAME, '../config/attack_hosts.txt')
 sys.path.insert(0, os.path.join(DIRNAME, '../'))
+sys.path.insert(0, DIRNAME)
 import test_cases  # noqa
 
 with open(CONFIG, 'r') as config_file:

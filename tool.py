@@ -4,10 +4,8 @@
 import inspect
 import pkgutil
 import sys
-# from network import ids_test_topo
-# from ml_ids import ids_classifier
-# from ml_ids import classifier_validation
 import lib.cli_commands
+
 
 def main():
     # Generate dictionary of command drivers
@@ -25,7 +23,7 @@ def main():
 
     # Extract command driver based on cli arg
     cmd_arg = sys.argv[1]
-    
+
     try:
         cmd_class = commands[cmd_arg]
 
@@ -33,6 +31,7 @@ def main():
         cmd_driver.run(sys.argv[2:])
     except KeyError:
         print 'Command not found'
+
 
 if __name__ == "__main__":
     main()
