@@ -3,7 +3,7 @@ import json
 import glob
 import gc
 
-DATA_PATH = os.path.join('../training_data', 'DDOS-Flows')
+DATA_PATH = os.path.join('../training_data', 'IDS2012')
 ATTACK_HOSTS_FILE = '../config/attack_hosts.txt'
 
 def extract_attack_hosts(data_path):

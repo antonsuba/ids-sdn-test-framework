@@ -23,26 +23,24 @@ import test_cases
 
 # Setup arguments
 parser = argparse.ArgumentParser(
-    description=
-    'Generates n number of hosts to simulate normal and anomalous attack behaviors'
-)
+    description='Generates n number of hosts to simulate normal'
+    ' and anomalous attack behaviors')
 parser.add_argument(
     '-n',
     '--hosts',
     dest='hosts',
     default=3,
     type=int,
-    help=
-    'Generates an n number of attack hosts based on the quantity specified (default: 3 hosts'
-)
+    help='Generates an n number of attack hosts based on the quantity'
+    ' specified (default: 3 hosts')
 parser.add_argument(
     '-r',
     '--ratio',
     dest='ratio',
     default=0.1,
     type=int,
-    help=
-    'Anomalous to normal hosts ratio. Generates normal traffic hosts based on ratio specified'
+    help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
+    ' based on ratio specified'
 )
 parser.add_argument(
     '-t',
@@ -53,7 +51,7 @@ parser.add_argument(
     help='Specify tests (Defaults to all)')
 args = parser.parse_args()
 
-MAC_IP_FILE = 'config/mac_ip.txt'
+MAC_IP_FILE = 'config/mac_ip_full.txt'
 TARGET_HOSTS_FILE = 'config/target_hosts.txt'
 ATTACK_HOSTS_FILE = 'config/attack_hosts.txt'
 
@@ -72,6 +70,7 @@ class IDSTestFramework(Topo):
         self.ext_mac_ip_dict = None
 
         self.main_switch = None
+        self.int_routers = dict()
         self.ext_routers = dict()
         self.int_hosts = list()
         self.ext_hosts = list()
@@ -117,16 +116,18 @@ class IDSTestFramework(Topo):
             self.int_topo_class = int_topo
 
             try:
-                hosts, switches = int_topo.create_topo(self, main_switch,
+                hosts, switches, routers = int_topo.create_topo(self, main_switch,
                                                        mac_ip_set)
-                self.int_hosts, self.int_switches = hosts, switches
+                self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
             except TypeError as e:
                 traceback.print_exc()
-                print '%s must have create_topo(topo, mac_ip_set) method' % topo_name
+                print '%s must have create_topo(topo, mac_ip_set) method' \
+                    % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
-        print 'SWITCHES: %s\n' % str(self.int_switches)
+        print 'SWITCHES: %s' % str(self.int_switches)
+        print 'ROUTERS: %s\n' % str(self.int_routers)
 
     # Generate test network
     def create_external_network(self,
@@ -147,21 +148,24 @@ class IDSTestFramework(Topo):
 
             try:
                 hosts, switches, routers = ext_topo.create_topo(
-                    self, main_switch, ext_mac_set, offset)
-                self.ext_hosts, self.ext_switches, self.ext_routers = hosts, switches, routers
+                    self, main_switch, ext_mac_set, self.int_routers, offset)
+                self.ext_hosts, self.ext_switches, self.ext_routers = \
+                    hosts, switches, routers
             except TypeError:
                 traceback.print_exc()
-                print '%s must have create_topo(Mininet, mac_ip_set, offset, switches, test_hosts, test_switches) method' % topo_name
+                print '%s must have create_topo(Mininet, mac_ip_set, offset,' \
+                    ' switches, test_hosts, test_switches) method' % topo_name
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.ext_hosts)
-        print 'SWITCHES: %s\n' % str(self.ext_switches)
+        print 'SWITCHES: %s' % str(self.ext_switches)
         print 'ROUTERS: %s\n' % str(self.ext_routers)
 
     # def generate_ip_aliases(self, hosts):
     #     print 'Generate Aliases'
     #     offset = len(self.int_switches)
-    #     self.ext_topo_class().generate_ip_aliases(hosts, self.ext_mac_ip_dict, offset)
+    #     self.ext_topo_class().generate_ip_aliases(
+    #         hosts, self.ext_mac_ip_dict, offset)
 
     # def configure_routers(net):
     #     "Set subnet to interface routing of internal hosts"
@@ -191,8 +195,8 @@ class IDSTestFramework(Topo):
 
             try:
                 print 'Executing %s' % test_name
-                self.generate_background_traffic(self.ext_hosts, targets,
-                                                 8000, 'sample1.txt')
+                self.generate_background_traffic(self.ext_hosts, targets, 8000,
+                                                 'sample1.txt')
                 # test_class().run_test(targets, BACKGROUND_HOSTS)
             except TypeError:
                 print 'Error. %s must have run_test(targets) method' % (
@@ -301,25 +305,26 @@ def main():
 
     # Instantiate IDS Test Framework
     ids_test = IDSTestFramework()
-    net = Mininet(topo=ids_test, controller=RemoteController, autoStaticArp=False)
+    net = Mininet(
+        topo=ids_test, controller=RemoteController, autoStaticArp=False)
 
     net.start()
 
     # int_hosts = [net.get(host) for host in ids_test.int_hosts]
     # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
 
-    # int_routers = [
-    #     net.get(router.name)
-    #     for key, router in ids_test.int_routers.iteritems()
-    # ]
+    int_routers = [
+        net.get(router.name)
+        for key, router in ids_test.int_routers.iteritems()
+    ]
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
     # ids_test.int_topo_class.configure_routers(int_routers,
     #                                           ids_test.ext_routers)
-    ids_test.ext_topo_class.configure_routers(ext_routers,
-                                              {})
+    ids_test.int_topo_class.configure_routers(int_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers, ids_test.int_routers)
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)

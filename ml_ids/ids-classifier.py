@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import glob
 import gc
+import copy
 import numpy as np
 from datetime import datetime
 from collections import defaultdict
@@ -21,9 +22,11 @@ def load_data_set(data_path):
         filename = file.split('/')[-1].split('.')[0]
         json_file = None
         temp = None
+
         try:
             json_file = open(file, 'r')
             temp = json.load(json_file).get('dataroot').get(filename)
+            print filename
 
             # Clean dataset
             for item in temp:
@@ -37,10 +40,14 @@ def load_data_set(data_path):
                 del item['destinationTCPFlagsDescription']
 
                 # Count total number of IP address and port occurences
-                ip_counts['source'][item['source']] += 1
-                ip_counts['destination'][item['destination']] += 1
-                port_counts['source'][item['sourcePort']] += 1
-                port_counts['destination'][item['destinationPort']] += 1
+                ip_counts['source'][item['source']] += item[
+                    'totalSourcePackets']
+                ip_counts['destination'][item['destination']] += item[
+                    'totalSourcePackets']
+                port_counts['source'][item['sourcePort']] += item[
+                    'totalSourcePackets']
+                port_counts['destination'][item['destinationPort']] += item[
+                    'totalSourcePackets']
 
                 item['Tag'] = convert_class(item['Tag'])
 
@@ -48,12 +55,13 @@ def load_data_set(data_path):
                 del item['totalSourceBytes']
                 del item['totalDestinationBytes']
                 del item['totalDestinationPackets']
-                del item['totalSourcePackets']
                 del item['direction']
                 del item['startDateTime']
                 del item['stopDateTime']
 
-            dataset += temp
+                for p in range(item.pop('totalSourcePackets')):
+                    dataset += [item.copy()]
+
         finally:
             if json_file is not None:
                 json_file.close()
@@ -82,9 +90,16 @@ for flow in flows:
 
 temp = pd.DataFrame.from_dict(flows)
 data = pd.get_dummies(temp, prefix=['protocol'], columns=['protocolName'])
-del data['sensorInterfaceId']
-del data['startTime']
+data = data.reindex(
+    columns=[
+        'Tag', 'destination_ip_count', 'destination_port_count',
+        'source_ip_count', 'source_port_count', 'protocol_icmp_ip',
+        'protocol_igmp', 'protocol_ip', 'protocol_ipv6icmp', 'protocol_tcp_ip',
+        'protocol_udp_ip'
+    ],
+    fill_value=0)
 print data
+print data.corr()['Tag'].sort_values(ascending=False)
 
 y = data['Tag'].values
 del data['Tag']
