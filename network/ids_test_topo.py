@@ -9,6 +9,7 @@ import inspect
 import yaml
 import re
 import traceback
+import pkgutil
 from importlib import import_module
 from collections import defaultdict
 from mininet.net import Mininet
@@ -22,33 +23,33 @@ import internal_network
 import external_network
 
 # Setup arguments
-parser = argparse.ArgumentParser(
-    description='Generates n number of hosts to simulate normal'
-    ' and anomalous attack behaviors')
-parser.add_argument(
-    '-n',
-    '--hosts',
-    dest='hosts',
-    default=3,
-    type=int,
-    help='Generates an n number of attack hosts based on the quantity'
-    ' specified (default: 3 hosts)')
-parser.add_argument(
-    '-r',
-    '--ratio',
-    dest='ratio',
-    default=0.1,
-    type=int,
-    help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-    ' based on ratio specified')
-parser.add_argument(
-    '-t',
-    '--test',
-    dest='test',
-    default='all',
-    type=str,
-    help='Specify tests (Defaults to all)')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser(
+#     description='Generates n number of hosts to simulate normal'
+#     ' and anomalous attack behaviors')
+# parser.add_argument(
+#     '-n',
+#     '--hosts',
+#     dest='hosts',
+#     default=3,
+#     type=int,
+#     help='Generates an n number of attack hosts based on the quantity'
+#     ' specified (default: 3 hosts)')
+# parser.add_argument(
+#     '-r',
+#     '--ratio',
+#     dest='ratio',
+#     default=0.1,
+#     type=int,
+#     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
+#     ' based on ratio specified')
+# parser.add_argument(
+#     '-t',
+#     '--test',
+#     dest='test',
+#     default='all',
+#     type=str,
+#     help='Specify tests (Defaults to all)')
+# args = parser.parse_args()
 
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 CONFIG = os.path.join(DIRNAME, '../config/config.yml')
@@ -299,7 +300,7 @@ class IDSTestFramework(Topo):
         return mac_ips
 
 
-def main():
+def main(exec_tests=False, tests=[]):
     setLogLevel('info')
 
     # Instantiate IDS Test Framework
@@ -309,13 +310,7 @@ def main():
 
     net.start()
 
-    # int_hosts = [net.get(host) for host in ids_test.int_hosts]
-    # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
-
-    # int_routers = [
-    #     net.get(router.name)
-    #     for key, router in ids_test.int_routers.iteritems()
-    # ]
+    # Configure routers and add aliases
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
@@ -327,13 +322,13 @@ def main():
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
-    # Start servers of internal network hosts
-    # start_internal_servers('dummy_files', 8000)
-
     # Execute framework commands
     # log_attack_hosts()
     targets_arr = ids_test.log_target_hosts(net)
-    # exec_test_cases(args.test, targets_arr)
+
+    if exec_tests:
+        print 'Hello'
+        # exec_test_cases(args.test, targets_arr)
 
     CLI(net)
     net.stop()
