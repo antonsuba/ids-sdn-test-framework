@@ -78,6 +78,7 @@ class IDSTestFramework(Topo):
         self.ext_mac_ip_dict = None
 
         self.main_switch = None
+        self.int_routers = dict()
         self.ext_routers = dict()
         self.int_hosts = list()
         self.ext_hosts = list()
@@ -121,9 +122,9 @@ class IDSTestFramework(Topo):
         self.int_topo_class = int_topo
 
         try:
-            hosts, switches = int_topo.create_topo(self, main_switch,
-                                                   mac_ip_set)
-            self.int_hosts, self.int_switches = hosts, switches
+            hosts, switches, routers = int_topo.create_topo(self, main_switch,
+                                                    mac_ip_set)
+            self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
         except TypeError as e:
             traceback.print_exc()
             print '%s must have create_topo(topo, mac_ip_set) method' \
@@ -131,7 +132,8 @@ class IDSTestFramework(Topo):
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.int_hosts)
-        print 'SWITCHES: %s\n' % str(self.int_switches)
+        print 'SWITCHES: %s' % str(self.int_switches)
+        print 'ROUTERS: %s\n' % str(self.int_routers)
 
     # Generate test network
     def create_external_network(self,
@@ -149,7 +151,7 @@ class IDSTestFramework(Topo):
 
         try:
             hosts, switches, routers = ext_topo.create_topo(
-                self, main_switch, ext_mac_set, offset)
+                self, main_switch, ext_mac_set, self.int_routers, offset)
             self.ext_hosts, self.ext_switches, self.ext_routers = \
                 hosts, switches, routers
         except TypeError:
@@ -159,7 +161,7 @@ class IDSTestFramework(Topo):
 
         print '\n%s generated with:\n' % topo_name
         print 'HOSTS: %s' % str(self.ext_hosts)
-        print 'SWITCHES: %s\n' % str(self.ext_switches)
+        print 'SWITCHES: %s' % str(self.ext_switches)
         print 'ROUTERS: %s\n' % str(self.ext_routers)
 
     # def generate_ip_aliases(self, hosts):
@@ -311,14 +313,21 @@ def main(exec_tests=False, tests=[]):
 
     net.start()
 
-    # Configure routers and add aliases
+    # int_hosts = [net.get(host) for host in ids_test.int_hosts]
+    # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
+
+    int_routers = [
+        net.get(router.name)
+        for key, router in ids_test.int_routers.iteritems()
+    ]
     ext_routers = [
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
     # ids_test.int_topo_class.configure_routers(int_routers,
     #                                           ids_test.ext_routers)
-    ids_test.ext_topo_class.configure_routers(ext_routers, {})
+    ids_test.int_topo_class.configure_routers(int_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers, ids_test.int_routers)
 
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
