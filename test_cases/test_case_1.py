@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from mininet.log import info
 
 
 class TestCase1(object):
@@ -20,9 +21,9 @@ class TestCase1(object):
 
     def exec_attack(self, targets, int_hosts, ext_hosts, int_switches,
                     ext_switches, int_routers, ext_routers):
-        host_num = len(targets) + 1
-        eth_intf = '%s-eth0' % host_num
+        host_num = sum(len(lis) for lis in [int_hosts, ext_hosts]) + 2
+        eth_intf = 'r%s-eth0' % host_num
         pcap_file = 'pcap/test-15jun.pcap'
 
-        int_hosts[0].cmd('tcpreplay --topspeed -i %s %s' % (eth_intf,
-                                                            pcap_file))
+        info(ext_routers[0].cmd('tcpreplay --topspeed -i %s %s' % (eth_intf,
+                                                                   pcap_file)))
