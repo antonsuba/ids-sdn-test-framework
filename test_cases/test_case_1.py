@@ -1,25 +1,28 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-class TestCase1(object):
 
+class TestCase1(object):
     def __init__(self):
         self.packages = []
 
-    def run_test(self, targets, hosts):
-        self.check_dependencies(self.packages, hosts[0])
-        self.exec_attack(targets, hosts)
+    def run_test(self, targets, int_hosts, ext_hosts, int_switches,
+                 ext_switches, int_routers, ext_routers):
+        self.check_dependencies(self.packages, int_hosts[0])
+        self.exec_attack(targets, int_hosts, ext_hosts, int_switches,
+                         ext_switches, int_routers, ext_routers)
 
     def check_dependencies(self, packages, host):
         result = host.cmd('dpkg -l %s' % (' '.join(packages)))
         if 'no packages found' in result:
             print 'Please install required dependencies by running:'
             print 'sudo apt-get install %s' % (' '.join(packages))
-            # host.cmd('sudo apt-get install %s' % (' '.join(packages)))
 
-    def exec_attack(self, targets, hosts):
+    def exec_attack(self, targets, int_hosts, ext_hosts, int_switches,
+                    ext_switches, int_routers, ext_routers):
         host_num = len(targets) + 1
         eth_intf = '%s-eth0' % host_num
         pcap_file = 'pcap/test-15jun.pcap'
 
-        hosts[0].cmd('tcpreplay --topspeed -i %s %s' % (eth_intf, pcap_file))
+        int_hosts[0].cmd('tcpreplay --topspeed -i %s %s' % (eth_intf,
+                                                            pcap_file))

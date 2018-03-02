@@ -122,9 +122,10 @@ class IDSTestFramework(Topo):
         self.int_topo_class = int_topo
 
         try:
-            hosts, switches, routers = int_topo.create_topo(self, main_switch,
-                                                    mac_ip_set)
-            self.int_hosts, self.int_switches, self.int_routers = hosts, switches, routers
+            hosts, switches, routers = int_topo.create_topo(
+                self, main_switch, mac_ip_set)
+            self.int_hosts, self.int_switches, self.int_routers = \
+                hosts, switches, routers
         except TypeError as e:
             traceback.print_exc()
             print '%s must have create_topo(topo, mac_ip_set) method' \
@@ -188,7 +189,16 @@ class IDSTestFramework(Topo):
             print '%s server started' % str(host)
 
     # Run specified test (Defaults to: all tests)
-    def exec_test_cases(self, test, targets, package=test_cases):
+    def exec_test_cases(self,
+                        test,
+                        int_hosts,
+                        ext_hosts,
+                        int_switches,
+                        ext_switches,
+                        int_routers,
+                        ext_routers,
+                        targets,
+                        package=test_cases):
         for importer, modname, ispkg in pkgutil.iter_modules(package.__path__):
             if modname in test_cases.EXCLUDE:
                 continue
@@ -197,13 +207,17 @@ class IDSTestFramework(Topo):
             test_name, test_class = self.__load_class(module)
 
             try:
-                print 'Executing %s' % test_name
-                self.generate_background_traffic(self.ext_hosts, targets, 8000,
-                                                 'sample1.txt')
-                # test_class().run_test(targets, BACKGROUND_HOSTS)
+                if test_name in test:
+                    print 'Executing %s' % test_name
+                    self.generate_background_traffic(int_hosts, targets, 8000,
+                                                     'sample1.txt')
+                    test_class().run_test(targets, int_hosts, ext_hosts,
+                                          int_switches, int_routers,
+                                          ext_routers)
             except TypeError:
-                print 'Error. %s must have run_test(targets) method' % (
-                    test_name)
+                print 'Error. %s must have run_test(targets, int_hosts,' \
+                    'ext_hosts, int_switches, ext_switches, int_routers,' \
+                    'ext_routers) method' % (test_name)
 
     def log_target_hosts(self, net):
         targets_file = open(TARGET_HOSTS_FILE, 'w+')
@@ -327,9 +341,17 @@ def main(exec_tests=False, tests=[]):
     # ids_test.int_topo_class.configure_routers(int_routers,
     #                                           ids_test.ext_routers)
     ids_test.int_topo_class.configure_routers(int_routers)
-    ids_test.ext_topo_class.configure_routers(ext_routers, ids_test.int_routers)
+    ids_test.ext_topo_class.configure_routers(ext_routers,
+                                              ids_test.int_routers)
 
+    int_hosts = [net.get(host) for host in ids_test.int_hosts]
     ext_hosts = [net.get(host) for host in ids_test.ext_hosts]
+    int_switches = [
+        net.get(switch) for host, switch in ids_test.int_switches.iteritems()
+    ]
+    ext_switches = [
+        net.get(switch) for host, switch in ids_test.ext_switches.iteritems()
+    ]
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
     # Execute framework commands
@@ -337,8 +359,10 @@ def main(exec_tests=False, tests=[]):
     targets_arr = ids_test.log_target_hosts(net)
 
     if exec_tests:
-        print 'Hello'
-        # exec_test_cases(args.test, targets_arr)
+        print 'Executing test cases'
+        ids_test.exec_test_cases(tests, int_hosts, ext_hosts, int_switches,
+                                 ext_switches, int_routers, ext_routers,
+                                 targets_arr)
 
     CLI(net)
     net.stop()
