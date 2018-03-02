@@ -212,8 +212,8 @@ class IDSTestFramework(Topo):
                     self.generate_background_traffic(int_hosts, targets, 8000,
                                                      'sample1.txt')
                     test_class().run_test(targets, int_hosts, ext_hosts,
-                                          int_switches, int_routers,
-                                          ext_routers)
+                                          int_switches, ext_switches,
+                                          int_routers, ext_routers)
             except TypeError:
                 print 'Error. %s must have run_test(targets, int_hosts,' \
                     'ext_hosts, int_switches, ext_switches, int_routers,' \
