@@ -80,6 +80,14 @@ class IDSMetricLogger(object):
 
         f.write('\n')
 
+        f.write('PRECISION SCORE: %f' % float(len(correct_blocks)) /
+                len(global_blocked_ips))
+
+        f.write('\n')
+
+        f.write('RECALL SCORE: %f' % float(len(correct_blocks)) /
+                len(attack_hosts))
+
         # f.write('STRESS TEST 2: HIGH CPU LOAD\n')
 
         # f.write('STRESS TEST 3: HIGH VOLUME TRAFFIC\n')
