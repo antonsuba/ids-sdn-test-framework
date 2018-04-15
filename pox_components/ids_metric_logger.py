@@ -58,8 +58,8 @@ class IDSMetricLogger(object):
 
         f.write('\n')
 
-        f.write('TRUE NEGATIVE %i / %i total hosts\n' % (len(correct_blocks),
-                                                         len(attack_hosts)))
+        f.write('TRUE NEGATIVES %i / %i total hosts\n' % (len(correct_blocks),
+                                                          len(attack_hosts)))
         for x in correct_blocks:
             f.write('%s\n' % x)
 
@@ -81,7 +81,7 @@ class IDSMetricLogger(object):
 
         f.write('\n')
 
-        f.write('PRECISION SCORE: %f' % 0 if not len(correct_blocks) else (
+        f.write('PRECISION SCORE: %f\n' % 0 if not len(correct_blocks) else (
             float(len(correct_blocks)) / len(global_blocked_ips)))
 
         f.write('\n')
