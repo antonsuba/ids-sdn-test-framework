@@ -7,9 +7,9 @@ from pox.lib.addresses import IPAddr, EthAddr
 log = core.getLogger()
 
 ATTACK_HOSTS_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/config/attack_hosts.txt')
+    '~/ids-sdn-test-framework/config/attack_hosts.txt')
 RESULT_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/results/ids_test_results.txt')
+    '~/ids-sdn-test-framework/results/ids_test_results.txt')
 
 global_blocked_ips = {}
 
