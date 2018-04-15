@@ -52,15 +52,15 @@ class IDSMetricLogger(object):
 
         f.write('TRUE POSITIVES %i / %i attack hosts\n' % (len(correct_blocks),
                                                            len(attack_hosts)))
-        # for x in correct_blocks:
-        #     f.write('%s\n' % x)
+        for x in correct_blocks:
+            f.write('%s\n' % x)
 
         f.write('\n')
 
         f.write('TRUE NEGATIVE %i / %i total hosts\n' % (len(correct_blocks),
                                                          len(attack_hosts)))
-        # for x in correct_blocks:
-        #     f.write('%s\n' % x)
+        for x in correct_blocks:
+            f.write('%s\n' % x)
 
         f.write('\n')
 
