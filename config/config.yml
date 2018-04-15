@@ -27,4 +27,7 @@ network:
   ids-test-topo:
     internal-network: distributed_topo
     external-network: external_topo
+cli:
+  training-module: ids_classifier
+  validation-module: classifier_validation
 ...
