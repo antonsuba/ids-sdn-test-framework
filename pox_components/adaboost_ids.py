@@ -152,7 +152,8 @@ class PacketChecker(object):
                     log.info('\n')
                     # return
                 else:
-                    global global_packet_count += 1
+                    global global_packet_count
+                    global_packet_count += 1
                     log.debug('Packet count: %s' % global_packet_count)
 
                     # Check and update count of destination port
