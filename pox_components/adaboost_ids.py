@@ -18,6 +18,7 @@ log = core.getLogger()
 checker = list()
 switch_number = -1
 global_black_list = list()
+global_packet_count = 0
 
 PROTOCOLS = {
     pkt.ipv4.ICMP_PROTOCOL: 0,
@@ -151,6 +152,9 @@ class PacketChecker(object):
                     log.info('\n')
                     # return
                 else:
+                    global global_packet_count += 1
+                    log.debug('Packet count: %s' % global_packet_count)
+
                     # Check and update count of destination port
                     dst_port = mac_to_port[packet.dst]
 

@@ -94,23 +94,23 @@ class Switch(object):
         # log.info('Switch mac_to_port: %s' % str(global_mac_to_port))
         # log.info('Switch PID: %s' % str(id(self.mac_to_port)))
 
-        if packet.dst in self.mac_to_port:
-            dst_port = self.mac_to_port[packet.dst]
+        # if packet.dst in self.mac_to_port:
+        #     dst_port = self.mac_to_port[packet.dst]
 
-            # log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
-            # packet.dst, dst_port))
-            msg = of.ofp_flow_mod()
-            msg.match = of.ofp_match.from_packet(packet)
-            msg.idle_timeout = 1
-            msg.hard_timeout = 3
-            msg.actions.append(of.ofp_action_output(port=dst_port))
-            self.connection.send(msg)
-            self.resend_packet(packet_in, dst_port)
-        else:
+        #     # log.debug("Installing %s.%i -> %s.%i" % (packet.src, src_port,
+        #     # packet.dst, dst_port))
+        #     msg = of.ofp_flow_mod()
+        #     msg.match = of.ofp_match.from_packet(packet)
+        #     msg.idle_timeout = 1
+        #     msg.hard_timeout = 3
+        #     msg.actions.append(of.ofp_action_output(port=dst_port))
+        #     self.connection.send(msg)
+        #     self.resend_packet(packet_in, dst_port)
+        # else:
             # Flood the packet out everything but the input port
             # This part looks familiar, right?
             # log.info('Resend Packet')
-            self.resend_packet(packet_in, of.OFPP_ALL)
+        self.resend_packet(packet_in, of.OFPP_ALL)
 
     def _handle_PacketIn(self, event):
         """

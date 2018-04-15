@@ -22,34 +22,6 @@ from mininet.node import Node
 import internal_network
 import external_network
 
-# Setup arguments
-# parser = argparse.ArgumentParser(
-#     description='Generates n number of hosts to simulate normal'
-#     ' and anomalous attack behaviors')
-# parser.add_argument(
-#     '-n',
-#     '--hosts',
-#     dest='hosts',
-#     default=3,
-#     type=int,
-#     help='Generates an n number of attack hosts based on the quantity'
-#     ' specified (default: 3 hosts)')
-# parser.add_argument(
-#     '-r',
-#     '--ratio',
-#     dest='ratio',
-#     default=0.1,
-#     type=int,
-#     help='Anomalous to normal hosts ratio. Generates normal traffic hosts'
-#     ' based on ratio specified')
-# parser.add_argument(
-#     '-t',
-#     '--test',
-#     dest='test',
-#     default='all',
-#     type=str,
-#     help='Specify tests (Defaults to all)')
-# args = parser.parse_args()
 
 DIRNAME = os.path.dirname(os.path.abspath(inspect.stack()[0][1]))
 CONFIG = os.path.join(DIRNAME, '../config/config.yml')
@@ -209,8 +181,6 @@ class IDSTestFramework(Topo):
             try:
                 if test_name in test:
                     print 'Executing %s' % test_name
-                    self.generate_background_traffic(int_hosts, targets, 8000,
-                                                     'sample1.txt')
                     test_class().run_test(targets, int_hosts, ext_hosts,
                                           int_switches, int_routers,
                                           ext_routers)
@@ -239,11 +209,11 @@ class IDSTestFramework(Topo):
         attack_file = open(ATTACK_HOSTS_FILE, 'w+')
         attack_hosts_arr = list()
 
-        offset = len(self.int_switches) + len(self.ext_switches)
-        for i in range(offset, len(self.ext_hosts) + offset - 1):
+        offset = len(self.int_switches)
+        for i in range(offset, len(self.ext_hosts) + offset):
             host = net.get('h' + str(i))
-            switch = net.get('s' + str(i))
-            switch.attached
+            # switch = net.get('s' + str(i))
+            # switch.attached
             ipaddr = host.cmd('hostname -I')
 
             attack_hosts_arr.append(ipaddr.rstrip())
@@ -327,9 +297,6 @@ def main(exec_tests=False, tests=[]):
 
     net.start()
 
-    # int_hosts = [net.get(host) for host in ids_test.int_hosts]
-    # ids_test.int_topo_class.generate_virtual_mac(int_hosts)
-
     int_routers = [
         net.get(router.name)
         for key, router in ids_test.int_routers.iteritems()
@@ -338,8 +305,7 @@ def main(exec_tests=False, tests=[]):
         net.get(router.name)
         for key, router in ids_test.ext_routers.iteritems()
     ]
-    # ids_test.int_topo_class.configure_routers(int_routers,
-    #                                           ids_test.ext_routers)
+
     ids_test.int_topo_class.configure_routers(int_routers)
     ids_test.ext_topo_class.configure_routers(ext_routers,
                                               ids_test.int_routers)
@@ -355,7 +321,12 @@ def main(exec_tests=False, tests=[]):
     ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
     # Execute framework commands
-    # log_attack_hosts()
+    # try:
+    #     ids_test.log_attack_hosts(net)
+    # except Exception:
+    #     traceback.print_exc()        
+    #     print 'Error logging attack hosts'
+
     targets_arr = ids_test.log_target_hosts(net)
 
     if exec_tests:
