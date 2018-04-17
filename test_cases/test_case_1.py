@@ -4,6 +4,8 @@ from mininet.log import info
 
 
 class TestCase1(object):
+    trigger = 'ddos'
+
     def __init__(self):
         self.packages = ['hping3']
 
@@ -21,9 +23,7 @@ class TestCase1(object):
 
     def _exec_attack(self, targets, int_hosts, ext_hosts, int_switches,
                     ext_switches, int_routers, ext_routers):
-        eth_intf = ext_routers[0].cmd(
-            'ifconfig | grep -E "\w+-eth0\s+"').split()[0]
-        pcap_file = 'pcap/test-15jun.pcap'
-
-        info(ext_routers[0].cmd('tcpreplay --topspeed -i %s %s' % (eth_intf,
-                                                                   pcap_file)))
+        print('DDOS')
+        for host in ext_hosts:
+            print('host')
+            info(host.cmd('hping3 --flood 192.168.2.110 &'))            

@@ -179,7 +179,7 @@ class IDSTestFramework(Topo):
             test_name, test_class = self.__load_class(module)
 
             try:
-                if test_name in test:
+                if test_class.trigger in test:
                     print 'Executing %s' % test_name
                     test_class().run_test(targets, int_hosts, ext_hosts,
                                           int_switches, ext_switches,
