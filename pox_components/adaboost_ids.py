@@ -9,10 +9,10 @@ from sklearn.externals import joblib
 from switch_pt import Switch
 
 CLASSIFIER_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/ml_ids/ids_models/%s.pkl' %
+    '~/ids-sdn-test-framework/ml_ids/ids_models/%s.pkl' %
     'adaboost-ids')  # TODO: Let user pick on startup
 TARGET_HOSTS_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/config/target_hosts.txt')
+    '~/ids-sdn-test-framework/config/target_hosts.txt')
 
 log = core.getLogger()
 checker = list()
@@ -152,7 +152,8 @@ class PacketChecker(object):
                     log.info('\n')
                     # return
                 else:
-                    global global_packet_count += 1
+                    global global_packet_count
+                    global_packet_count += 1
                     log.debug('Packet count: %s' % global_packet_count)
 
                     # Check and update count of destination port

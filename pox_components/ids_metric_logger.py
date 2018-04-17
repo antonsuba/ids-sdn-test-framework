@@ -1,5 +1,6 @@
 # Import pox libraries
 from __future__ import division
+import os
 from pox.core import core
 from pox.core import core
 from pox.lib.addresses import IPAddr, EthAddr
@@ -7,9 +8,9 @@ from pox.lib.addresses import IPAddr, EthAddr
 log = core.getLogger()
 
 ATTACK_HOSTS_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/config/attack_hosts.txt')
+    '~/ids-sdn-test-framework/config/attack_hosts.txt')
 RESULT_FILE = os.path.expanduser(
-    '~/ml-ids-test-environment-sdn/results/ids_test_results.txt')
+    '~/ids-sdn-test-framework/results/ids_test_results.txt')
 
 global_blocked_ips = {}
 
@@ -52,15 +53,15 @@ class IDSMetricLogger(object):
 
         f.write('TRUE POSITIVES %i / %i attack hosts\n' % (len(correct_blocks),
                                                            len(attack_hosts)))
-        # for x in correct_blocks:
-        #     f.write('%s\n' % x)
+        for x in correct_blocks:
+            f.write('%s\n' % x)
 
         f.write('\n')
 
-        f.write('TRUE NEGATIVE %i / %i total hosts\n' % (len(correct_blocks),
-                                                         len(attack_hosts)))
-        # for x in correct_blocks:
-        #     f.write('%s\n' % x)
+        f.write('TRUE NEGATIVES %i / %i total hosts\n' % (len(correct_blocks),
+                                                          len(attack_hosts)))
+        for x in correct_blocks:
+            f.write('%s\n' % x)
 
         f.write('\n')
 
@@ -80,13 +81,13 @@ class IDSMetricLogger(object):
 
         f.write('\n')
 
-        f.write('PRECISION SCORE: %f' % float(len(correct_blocks)) /
-                len(global_blocked_ips))
+        f.write('PRECISION SCORE: %f\n' % 0 if not len(correct_blocks) else (
+            float(len(correct_blocks)) / len(global_blocked_ips)))
 
         f.write('\n')
 
-        f.write('RECALL SCORE: %f' % float(len(correct_blocks)) /
-                len(attack_hosts))
+        f.write('RECALL SCORE: %f' % 0 if not len(correct_blocks) else (float(
+            len(correct_blocks)) / len(attack_hosts)))
 
         # f.write('STRESS TEST 2: HIGH CPU LOAD\n')
 
