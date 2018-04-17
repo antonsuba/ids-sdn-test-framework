@@ -179,11 +179,11 @@ class IDSTestFramework(Topo):
             test_name, test_class = self.__load_class(module)
 
             try:
-                if test_name in test:
+                if test_class.trigger in test:
                     print 'Executing %s' % test_name
-                    test_class().run_test(targets, int_hosts, ext_hosts,
-                                          int_switches, ext_switches,
-                                          int_routers, ext_routers)
+                    test_class().run(targets, int_hosts, ext_hosts,
+                                        int_switches, ext_switches,
+                                        int_routers, ext_routers)
             except TypeError:
                 print 'Error. %s must have run_test(targets, int_hosts,' \
                     'ext_hosts, int_switches, ext_switches, int_routers,' \
@@ -318,7 +318,7 @@ def main(exec_tests=False, tests=[]):
     ext_switches = [
         net.get(switch) for host, switch in ids_test.ext_switches.iteritems()
     ]
-    ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
+    # ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
 
     # Execute framework commands
     # try:
@@ -330,10 +330,12 @@ def main(exec_tests=False, tests=[]):
     targets_arr = ids_test.log_target_hosts(net)
 
     if exec_tests:
+        net.waitConnected()
+
         print 'Executing test cases'
         ids_test.exec_test_cases(tests, int_hosts, ext_hosts, int_switches,
-                                 ext_switches, int_routers, ext_routers,
-                                 targets_arr)
+                                    ext_switches, int_routers, ext_routers,
+                                    targets_arr)
 
     CLI(net)
     net.stop()
