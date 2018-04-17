@@ -1,4 +1,5 @@
 class TestCase(object):
+    trigger = ''
     packages = []
 
     def run(self, targets, int_hosts, ext_hosts, int_switches,
