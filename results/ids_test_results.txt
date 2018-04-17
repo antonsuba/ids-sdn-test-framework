@@ -2,7 +2,7 @@ IDS TEST RESULTS
 
 TRUE POSITIVES 0 / 4 attack hosts
 
-TRUE NEGATIVE 0 / 4 total hosts
+TRUE NEGATIVES 0 / 4 total hosts
 
 FALSE POSITIVES: 0 / 0 background hosts
 
@@ -12,3 +12,6 @@ FALSE NEGATIVES: 4 / 4 attack hosts
 192.168.19.5
 192.168.19.6
 
+PRECISION SCORE: 0.000000
+
+RECALL SCORE: 0.000000
