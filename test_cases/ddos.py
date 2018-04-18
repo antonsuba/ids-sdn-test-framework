@@ -46,13 +46,18 @@ class DDOS(TestCase):
         popens[ext_hosts[0]] = ext_hosts[0].popen('hping3 -c 10000000 --faster 192.168.2.112')
         popens[ext_hosts[1]] = ext_hosts[1].popen('hping3 -c 10000000 --faster 192.168.3.114')
         popens[ext_hosts[2]] = ext_hosts[2].popen('hping3 -c 10000000 --faster 192.168.1.103')
+        popens[ext_hosts[3]] = ext_hosts[2].popen('hping3 -c 10000000 --faster 192.168.2.109')
+        popens[ext_hosts[4]] = ext_hosts[2].popen('hping3 -c 10000000 --faster 192.168.4.119')
+        popens[ext_hosts[2]] = ext_hosts[2].popen('hping3 -c 10000000 --faster 192.168.5.122')        
+        
+        popens[int_hosts[0]] = int_hosts[0].popen('tcpreplay --topspeed -i h1-eth0 /media/sf_ids-sdn/pcap/testbed-15jun.pcap')
 
-        popens[int_hosts[0]] = int_hosts[0].popen('hping3 -c 3000 192.168.2.112')
-        popens[int_hosts[2]] = int_hosts[0].popen('hping3 -c 3000 192.168.3.114')
-        popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.1.103')
+        # popens[int_hosts[0]] = int_hosts[0].popen('hping3 -c 3000 192.168.2.112')
+        # popens[int_hosts[2]] = int_hosts[0].popen('hping3 -c 3000 192.168.3.114')
+        # popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.1.103')
 
-        popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.2.109')
-        popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.5.122')
+        # popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.2.109')
+        # popens[int_hosts[3]] = int_hosts[0].popen('hping3 -c 3000 192.168.5.122')
 
         for host, line in pmonitor(popens):
             if host:
