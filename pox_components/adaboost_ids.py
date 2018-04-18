@@ -126,11 +126,11 @@ class PacketChecker(object):
 
                 # Do nothing if packet came from host
                 if self.attached_host == ip.srcip:
-                    log.info('Packet from attached host\n')
+                    # log.info('Packet from attached host\n')
                     return
 
                 if self.attached_host != ip.dstip:
-                    log.info('Packet not for this host\n')
+                    # log.info('Packet not for this host\n')
                     return
 
                 # Check if IP is already blocked
@@ -155,6 +155,8 @@ class PacketChecker(object):
                     global global_packet_count
                     global_packet_count += 1
                     log.debug('Packet count: %s' % global_packet_count)
+                    core.IDSMetricLogger.add_packet_count()
+                    
 
                     # Check and update count of destination port
                     dst_port = mac_to_port[packet.dst]

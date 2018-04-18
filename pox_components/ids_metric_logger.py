@@ -81,17 +81,15 @@ class IDSMetricLogger(object):
 
         f.write('\n')
 
-        f.write('PRECISION SCORE: %s\n' % 0 if not len(correct_blocks) else str(
-            float(len(correct_blocks)) / len(global_blocked_ips)))
+        f.write('PRECISION SCORE: %s\n' % 0 \
+            if not str(len(correct_blocks)) \
+            else str(float(len(correct_blocks)) / len(global_blocked_ips)))
 
         f.write('\n')
 
-        f.write('RECALL SCORE: %s' % 0 if not len(correct_blocks) else str(float(
-            len(correct_blocks)) / len(attack_hosts)))
-
-        # f.write('STRESS TEST 2: HIGH CPU LOAD\n')
-
-        # f.write('STRESS TEST 3: HIGH VOLUME TRAFFIC\n')
+        f.write('RECALL SCORE: %s' % 0 \
+            if not str(len(correct_blocks)) \
+            else str(float(len(correct_blocks)) / len(attack_hosts)))
 
         f.close()
 

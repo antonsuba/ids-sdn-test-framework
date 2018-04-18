@@ -1,1 +1,13 @@
 IDS TEST RESULTS
+
+TRUE POSITIVES 0 / 3 attack hosts
+
+TRUE NEGATIVES 0 / 3 total hosts
+
+FALSE POSITIVES: 0 / 0 background hosts
+
+FALSE NEGATIVES: 3 / 3 attack hosts
+192.168.19.1
+192.168.19.2
+192.168.19.3
+
