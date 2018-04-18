@@ -109,7 +109,7 @@ class Switch(object):
         else:
             # Flood the packet out everything but the input port
             # This part looks familiar, right?
-            log.info('Resend Packet')
+            # log.info('Resend Packet')
             self.resend_packet(packet_in, of.OFPP_ALL)
 
     def _handle_PacketIn(self, event):
@@ -125,7 +125,7 @@ class Switch(object):
         packet_in = event.ofp  # The actual ofp_packet_in message.
 
         ip = packet.find('ipv4')
-        log.info(ip)
+        # log.info(ip)
 
         self.switchImplementation(packet, packet_in)
 

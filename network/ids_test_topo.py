@@ -10,6 +10,7 @@ import yaml
 import re
 import traceback
 import pkgutil
+import time
 from importlib import import_module
 from collections import defaultdict
 from mininet.net import Mininet
@@ -185,6 +186,7 @@ class IDSTestFramework(Topo):
                                         int_switches, ext_switches,
                                         int_routers, ext_routers)
             except TypeError:
+                traceback.print_exc()                
                 print 'Error. %s must have run_test(targets, int_hosts,' \
                     'ext_hosts, int_switches, ext_switches, int_routers,' \
                     'ext_routers) method' % (test_name)
@@ -328,6 +330,8 @@ def main(exec_tests=False, tests=[]):
     #     print 'Error logging attack hosts'
 
     targets_arr = ids_test.log_target_hosts(net)
+
+    time.sleep(5)
 
     if exec_tests:
         net.waitConnected()
