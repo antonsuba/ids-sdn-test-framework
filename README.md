@@ -4,7 +4,7 @@
 
 1. Clone repository into Mininet VM home directory
 
-2. Copy contents of `pox_components` into `~/pox/ext`
+2. Copy contents of `pox_components` into `~/pox/ext`, along with other POX components you want to use
 
 3. For training models, place the folder containing the training dataset inside `ml_ids/training_data`
 
@@ -66,6 +66,8 @@ python tool.py createnetwork exectest TestCase1 TestCase2  # TestCase3, ...
 
 where the parameters after exectest are the names of the test case classes found in the `test_cases` folder.
 
+Results of the tests can be found in `results/ids_test_results.txt`
+
 ## Creating Custom Test Cases
 
 Making your own test cases is easy. Just create a class that inherits from the TestCase object in `test_cases/test_case.py`. Simply override the
@@ -75,3 +77,11 @@ def _exec_test(self, targets, int_hosts, ext_hosts, int_switches, ext_switches, 
 ```
 
 method and execute your tests there. See the provided `ddos.py` test case for reference.
+
+## Other Tools
+
+### Scripts
+
+1. The `scripts/extract_attack_hosts.py` script allows you to generate the `attack_scripts.txt` file automatically. Just modify it to use your training dataset.
+
+2. The `scripts/extract_ip_mac.sh` script produces the MAC-IP address pairs, given a PCAP file. Just run the script with the PCAP file as the first parameter.
