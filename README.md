@@ -90,6 +90,34 @@ ext_routers  | List of external routers
 
 See the provided `ddos.py` test case for reference.
 
+## Creating Custom Networks
+
+Create a class in either the `internal_network` or `external_network` that implements this method:
+
+```python
+def create_topo(self, topo, main_switch, mac_ip_list)
+```
+
+The framework then uses this module as the basis of the network topology
+
+Parameter    | Description
+------------ | -------------------------
+topo         | Mininet topo object
+main_switch  | Name of main connecting switch. Serves as bridge both networks
+mac_ip_list  | Dictionary of mac ip pairs
+
+
+Router configuration is done by implementing:
+
+```python
+def configure_router(self, routers)
+```
+
+Parameter    | Description
+------------ | -------------------------
+routers      | List of all router nodes in the network
+
+
 ## Other Tools
 
 ### Scripts
