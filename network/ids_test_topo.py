@@ -138,21 +138,6 @@ class IDSTestFramework(Topo):
         print 'SWITCHES: %s' % str(self.ext_switches)
         print 'ROUTERS: %s\n' % str(self.ext_routers)
 
-    # def generate_ip_aliases(self, hosts):
-    #     print 'Generate Aliases'
-    #     offset = len(self.int_switches)
-    #     self.ext_topo_class().generate_ip_aliases(
-    #         hosts, self.ext_mac_ip_dict, offset)
-
-    # def configure_routers(net):
-    #     "Set subnet to interface routing of internal hosts"
-
-    #     routers = dict(int_routers, **ext_routers)
-
-    #     for key in routers:
-    #         router_name = routers[key].name
-    #         for network_addr, dest_router in routers.iteritems():
-    #             info()
 
     def start_internal_servers(self, directory, port):
         print '\nStarting internal network hosts servers:'
@@ -320,14 +305,6 @@ def main(exec_tests=False, tests=[]):
     ext_switches = [
         net.get(switch) for host, switch in ids_test.ext_switches.iteritems()
     ]
-    # ids_test.ext_topo_class.generate_ip_aliases(ext_routers, ext_hosts)
-
-    # Execute framework commands
-    # try:
-    #     ids_test.log_attack_hosts(net)
-    # except Exception:
-    #     traceback.print_exc()        
-    #     print 'Error logging attack hosts'
 
     targets_arr = ids_test.log_target_hosts(net)
 
