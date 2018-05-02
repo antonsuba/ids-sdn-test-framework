@@ -76,7 +76,19 @@ Making your own test cases is easy. Just create a class that inherits from the T
 def _exec_test(self, targets, int_hosts, ext_hosts, int_switches, ext_switches, int_routers, ext_routers)
 ```
 
-method and execute your tests there. See the provided `ddos.py` test case for reference.
+method and execute your tests there.
+
+Parameter | Description
+--------- | ---
+targets | List of target hosts
+int_hosts | List of internal hosts
+ext_hosts | List of external hosts
+int_switches | List of internal switches
+ext_switches | List of external switches
+int_routers | List of internal routers
+ext_routers | List of external routers
+
+See the provided `ddos.py` test case for reference.
 
 ## Other Tools
 
