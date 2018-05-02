@@ -78,15 +78,15 @@ def _exec_test(self, targets, int_hosts, ext_hosts, int_switches, ext_switches, 
 
 method and execute your tests there.
 
-Parameter | Description
---------- | ---
-targets | List of target hosts
-int_hosts | List of internal hosts
-ext_hosts | List of external hosts
+Parameter    | Description
+------------ | -------------------------
+targets      | List of target hosts
+int_hosts    | List of internal hosts
+ext_hosts    | List of external hosts
 int_switches | List of internal switches
 ext_switches | List of external switches
-int_routers | List of internal routers
-ext_routers | List of external routers
+int_routers  | List of internal routers
+ext_routers  | List of external routers
 
 See the provided `ddos.py` test case for reference.
 
